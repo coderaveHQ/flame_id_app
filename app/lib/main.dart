@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
 
+import 'package:flame_id_app/firebase_options.dart';
 import 'package:flame_id_app/src/app.dart';
 import 'package:flame_id_app/core/utils/env.dart';
 
@@ -12,6 +14,7 @@ Future<void> main() async {
   await loadEnv();
 
   await initializeSupabase();
+  await initializeFirebase();
 
   runApp(const App());
 }
@@ -26,4 +29,8 @@ Future<void> initializeSupabase() async {
     anonKey: Env.supabaseAnonKey,
     authOptions: const FlutterAuthClientOptions(detectSessionInUri: false)
   );
+}
+
+Future<void> initializeFirebase() async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
