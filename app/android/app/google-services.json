@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "392367566065",
+    "project_id": "flame-id-app-0",
+    "storage_bucket": "flame-id-app-0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:392367566065:android:952e88a92967f25d688d50",
+        "android_client_info": {
+          "package_name": "dev.coderave.flame_id_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA32J2TPi7R6GQhEuvFTOaZ61hnyXADoiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
