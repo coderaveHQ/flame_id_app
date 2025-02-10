@@ -10,10 +10,84 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # environment variables
+  flutter_dotenv: ^5.2.1
+
+  # Supabase
+  supabase_flutter: ^2.8.1
+
+  # State Management
+  hooks_riverpod: ^2.5.2
+  flutter_hooks: ^0.20.5
+  riverpod_annotation: ^2.3.5
+
+  # Routing
+  go_router: ^14.2.7
+
+  # Notifications
+  delightful_toast: ^1.1.0
+
+  # Icons
+  lucide_icons_flutter: ^1.2.5
+
+  # UI
+  gap: ^3.0.1
+
+  # Helpers
+  equatable: ^2.0.7
+  dartz: ^0.10.1
+
+  # Splash
+  flutter_native_splash: ^2.4.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  
+  # Linting
   flutter_lints: ^5.0.0
+  custom_lint: ^0.7.0
+  riverpod_lint: ^2.3.13
+
+  # Generators
+  build_runner: ^2.4.12
+  riverpod_generator: ^2.4.3
+  go_router_builder: ^2.7.1
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - dotenv
+
+  fonts:
+    - family: Switzer
+      fonts:
+        - asset: assets/fonts/Switzer-Black.otf
+        - asset: assets/fonts/Switzer-BlackItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Bold.otf
+        - asset: assets/fonts/Switzer-BoldItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Extrabold.otf
+        - asset: assets/fonts/Switzer-ExtraboldItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Extralight.otf
+        - asset: assets/fonts/Switzer-ExtralightItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Italic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Light.otf
+        - asset: assets/fonts/Switzer-LightItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Medium.otf
+        - asset: assets/fonts/Switzer-MediumItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Regular.otf
+        - asset: assets/fonts/Switzer-Semibold.otf
+        - asset: assets/fonts/Switzer-SemiboldItalic.otf
+          style: italic
+        - asset: assets/fonts/Switzer-Thin.otf
+        - asset: assets/fonts/Switzer-ThinItalic.otf
+          style: italic
+

@@ -4,3 +4,11 @@ linter:
   rules:
     prefer_single_quotes: true
     avoid_print: true
+
+analyzer:
+  plugins:
+    - custom_lint
+
+custom_lint:
+  rules:
+    provider_parameters: true
