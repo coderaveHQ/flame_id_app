@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
+import 'package:flame_id_app/core/extensions/object_x.dart';
 import 'package:flame_id_app/src/features/auth/presentation/state/sign_in_state.dart';
 import 'package:flame_id_app/src/features/auth/presentation/state/sign_in_notifier_provider.dart';
 import 'package:flame_id_app/core/common/widgets/fl_rectangle_button.dart';
@@ -39,6 +40,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     );
   }
 
+  void _handleSignInStateUpdate(SignInState? last, SignInState next) {
+    if (next.hasError) next.error!.showErrorToast(context);
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -46,6 +51,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     _passwordController = useTextEditingController();
 
     final SignInState signInState = ref.watch(signInNotifierProvider);
+
+    ref.listen(signInNotifierProvider, _handleSignInStateUpdate);
 
     return FLScaffold(
       body: SingleChildScrollView(
