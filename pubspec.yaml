@@ -36,6 +36,7 @@ dependencies:
   # Helpers
   equatable: ^2.0.7
   dartz: ^0.10.1
+  collection: ^1.19.0
 
   # Splash
   flutter_native_splash: ^2.4.3
