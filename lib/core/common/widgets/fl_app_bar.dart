@@ -19,7 +19,6 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? extraLeading;
   final Widget? extraTrailing;
-  final bool transparent;
 
   const FLAppBar({
     super.key,
@@ -28,8 +27,7 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actionButtons = const <FLAppBarButton>[],
     this.title,
     this.extraLeading,
-    this.extraTrailing,
-    this.transparent = false
+    this.extraTrailing
   });
 
   @override
@@ -48,7 +46,7 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
         style: const TextStyle(
           fontSize: 22.0,
           fontWeight: FontWeight.w600,
-          color: FLColors.gray100
+          color: FLColors.gray900
         )
       )),
       ...actionButtons.map((Widget actionButton) => Align(
@@ -61,7 +59,7 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       width: preferredSize.width,
       height: preferredSize.height,
-      color: transparent ? Colors.transparent : FLColors.gray900,
+      color: FLColors.white,
       padding: EdgeInsets.only(top: context.topPadding),
       child: Row(
         children: <Widget>[
@@ -115,8 +113,8 @@ class FLAppBarButton extends StatelessWidget {
       size: kToolbarHeight - 4.0,
       isLoading: isLoading,
       isEnabled: isEnabled,
-      backgroundColor: FLColors.gray900,
-      foregroundColor: FLColors.gray100
+      backgroundColor: FLColors.white,
+      foregroundColor: FLColors.gray900
     );
   }
 }

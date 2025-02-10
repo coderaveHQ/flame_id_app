@@ -30,7 +30,7 @@ class FLTextField extends StatelessWidget {
     final InputBorder defaultBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12.0),
       borderSide: const BorderSide(
-        color: FLColors.gray800, 
+        color: FLColors.gray200, 
         width: 1.5
       )
     );
@@ -38,23 +38,19 @@ class FLTextField extends StatelessWidget {
     final TextStyle defaultTextStyle = FLTypography.base.copyWith(
       fontSize: 15.0,
       fontWeight: FontWeight.w400,
-      color: FLColors.gray100
+      color: FLColors.gray900
     );
 
     return TextField(
-      keyboardAppearance: Brightness.dark,
+      keyboardAppearance: Brightness.light,
       controller: controller,
       autocorrect: false,
       enabled: isEnabled,
       keyboardType: inputType,
       canRequestFocus: isEnabled,
       obscureText: obscure,
-      cursorColor: FLColors.gray400,
-      style: FLTypography.base.copyWith(
-        fontSize: 15.0,
-        fontWeight: FontWeight.w400,
-        color: FLColors.gray100
-      ),
+      cursorColor: FLColors.gray500,
+      style: defaultTextStyle,
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: FLSpacing.md,
@@ -65,17 +61,17 @@ class FLTextField extends StatelessWidget {
         enabledBorder: defaultBorder,
         disabledBorder: defaultBorder,
         focusedErrorBorder: defaultBorder,
-        focusedBorder: defaultBorder.copyWith(borderSide: defaultBorder.borderSide.copyWith(color: FLColors.gray100)),
+        focusedBorder: defaultBorder.copyWith(borderSide: defaultBorder.borderSide.copyWith(color: FLColors.red600)),
         prefixIconConstraints: const BoxConstraints.tightFor(height: 24.0),
         prefixIcon: icon.whenNotNull((IconData ic) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: FLSpacing.md),
           child: Icon(
             icon,
-            color: FLColors.gray100
+            color: FLColors.gray900
           )
         )),
         hintText: hint,
-        hintStyle: defaultTextStyle.copyWith(color: FLColors.gray600)
+        hintStyle: defaultTextStyle.copyWith(color: FLColors.gray500)
       )
     );
   }

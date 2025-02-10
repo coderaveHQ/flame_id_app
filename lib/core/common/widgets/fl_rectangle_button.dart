@@ -27,13 +27,13 @@ class FLRectangleButton extends StatelessWidget {
       height: 52.0,
       child: RawMaterialButton(
         onPressed: isEnabled && !isLoading ? onPressed : null,
-        fillColor: FLColors.gray100,
+        fillColor: FLColors.red600,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
         padding: const EdgeInsets.symmetric(horizontal: FLSpacing.lg),
         enableFeedback: isEnabled && !isLoading,
         child: isLoading
           ? const FLSpinner(
-            color: FLColors.gray900,
+            color: FLColors.white,
             size: 18.0
           )
           : FLText(
@@ -44,7 +44,7 @@ class FLRectangleButton extends StatelessWidget {
             style: const TextStyle(
               fontSize: 18.0,
               fontWeight: FontWeight.w600,
-              color: FLColors.gray900
+              color: FLColors.white
             )
           )
       )

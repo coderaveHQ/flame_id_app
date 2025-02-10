@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 class FLColors {
 
+  static const Color white = Color(0xFFFFFFFF);
+
   static const Color gray100 = Color(0xFFFBFBFB);
   static const Color gray200 = Color(0xFFEAEAEA);
   static const Color gray300 = Color(0xFFDFDFDF);

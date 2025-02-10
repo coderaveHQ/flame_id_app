@@ -36,15 +36,15 @@ class FLCircularButton extends StatelessWidget {
         hoverElevation: 0.0,
         enableFeedback: isEnabled && !isLoading,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(size / 2.0)),
-        fillColor: backgroundColor ?? FLColors.gray100,
+        fillColor: backgroundColor ?? FLColors.red600,
         child: isLoading
           ? FLSpinner(
             size: size / 2.0, 
-            color: foregroundColor ?? FLColors.gray900
+            color: foregroundColor ?? FLColors.white
           )
           : Icon(
             icon,
-            color: foregroundColor ?? FLColors.gray900,
+            color: foregroundColor ?? FLColors.white,
             size: size / 2.0
           )
       )

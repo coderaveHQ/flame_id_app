@@ -58,22 +58,22 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         child: Column(
           children: [
             const FLText(
-              text: 'Willkommen bei scial!',
+              text: 'Willkommen bei Flame ID!',
               alignment: TextAlign.center,
               style: TextStyle(
                 fontSize: 28.0,
                 fontWeight: FontWeight.w600,
-                color: FLColors.gray100
+                color: FLColors.gray900
               )
             ),
-            const Gap(FLSpacing.xl),
+            const Gap(FLSpacing.lg),
             const FLText(
               text: 'Melde dich an und schon kann es losgehen.',
               alignment: TextAlign.center,
               style: TextStyle(
                 fontSize: 16.0,
                 fontWeight: FontWeight.w400,
-                color: FLColors.gray300
+                color: FLColors.gray700
               )
             ),
             const Gap(FLSpacing.xxl),

@@ -21,7 +21,7 @@ class FLScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: FLColors.gray900,
+      backgroundColor: FLColors.white,
       appBar: appBar,
       body: body,
       floatingActionButton: floatingActionButton,
