@@ -61,6 +61,8 @@ flutter:
   assets:
     - dotenv
 
+    - assets/images/
+
   fonts:
     - family: Switzer
       fonts:

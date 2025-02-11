@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:flame_id_app/src/features/main/presentation/pages/main_page.dart';
 import 'package:flame_id_app/src/features/auth/presentation/state/custom_auth_state_notifier_provider.dart';
 import 'package:flame_id_app/src/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:flame_id_app/src/features/certificates/presentation/pages/certificates_page.dart';
@@ -17,6 +18,7 @@ import 'package:flame_id_app/src/features/vault/presentation/pages/vault_page.da
 part 'router.g.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
 
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
@@ -115,7 +117,28 @@ class SignInRoute extends GoRouteData {
   }
 }
 
-@TypedGoRoute<UserManagementRoute>(path: UserManagementRoute.path)
+@TypedShellRoute<MainRoute>(
+  routes: [
+    TypedGoRoute<UserManagementRoute>(path: UserManagementRoute.path),
+    TypedGoRoute<PersonalDataRoute>(path: PersonalDataRoute.path),
+    TypedGoRoute<CertificatesRoute>(path: CertificatesRoute.path),
+    TypedGoRoute<LicensesRoute>(path: LicensesRoute.path),
+    TypedGoRoute<VaultRoute>(path: VaultRoute.path)
+  ]
+)
+class MainRoute extends ShellRouteData {
+
+  const MainRoute();
+
+  @override
+  Page<void> pageBuilder(BuildContext context, GoRouterState state, Widget navigator) {
+    return NoTransitionPage(
+      key: state.pageKey,
+      child: MainPage(navigator: navigator)
+    );
+  }
+}
+
 class UserManagementRoute extends GoRouteData {
 
   const UserManagementRoute();
@@ -123,7 +146,7 @@ class UserManagementRoute extends GoRouteData {
   static const String path = '/user-management';
   static const String fullPath = path;
 
-  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+  static final GlobalKey<NavigatorState> $navigatorKey = shellNavigatorKey;
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
@@ -134,7 +157,6 @@ class UserManagementRoute extends GoRouteData {
   }
 }
 
-@TypedGoRoute<PersonalDataRoute>(path: PersonalDataRoute.path)
 class PersonalDataRoute extends GoRouteData {
 
   const PersonalDataRoute();
@@ -142,15 +164,17 @@ class PersonalDataRoute extends GoRouteData {
   static const String path = '/personal-data';
   static const String fullPath = path;
 
-  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+  static final GlobalKey<NavigatorState> $navigatorKey = shellNavigatorKey;
 
   @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const PersonalDataPage();
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    return NoTransitionPage(
+      key: state.pageKey,
+      child: const PersonalDataPage()
+    );
   }
 }
 
-@TypedGoRoute<CertificatesRoute>(path: CertificatesRoute.path)
 class CertificatesRoute extends GoRouteData {
 
   const CertificatesRoute();
@@ -158,15 +182,17 @@ class CertificatesRoute extends GoRouteData {
   static const String path = '/certificates';
   static const String fullPath = path;
 
-  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+  static final GlobalKey<NavigatorState> $navigatorKey = shellNavigatorKey;
 
   @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const CertificatesPage();
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    return NoTransitionPage(
+      key: state.pageKey,
+      child: const CertificatesPage()
+    );
   }
 }
 
-@TypedGoRoute<LicensesRoute>(path: LicensesRoute.path)
 class LicensesRoute extends GoRouteData {
 
   const LicensesRoute();
@@ -174,15 +200,17 @@ class LicensesRoute extends GoRouteData {
   static const String path = '/licenses';
   static const String fullPath = path;
 
-  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+  static final GlobalKey<NavigatorState> $navigatorKey = shellNavigatorKey;
 
   @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const LicensesPage();
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    return NoTransitionPage(
+      key: state.pageKey,
+      child: const LicensesPage()
+    );
   }
 }
 
-@TypedGoRoute<VaultRoute>(path: VaultRoute.path)
 class VaultRoute extends GoRouteData {
 
   const VaultRoute();
@@ -190,10 +218,13 @@ class VaultRoute extends GoRouteData {
   static const String path = '/vault';
   static const String fullPath = path;
 
-  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+  static final GlobalKey<NavigatorState> $navigatorKey = shellNavigatorKey;
 
   @override
-  Widget build(BuildContext context, GoRouterState state) {
-    return const VaultPage();
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    return NoTransitionPage(
+      key: state.pageKey,
+      child: const VaultPage()
+    );
   }
 }
