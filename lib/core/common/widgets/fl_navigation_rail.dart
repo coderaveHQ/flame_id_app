@@ -24,9 +24,10 @@ class FLNavigationRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: context.leftPadding + 2 * FLSpacing.lg + 280.0,
       height: double.infinity,
+      color: FLColors.gray200,
       child: Column(
         children: [
           _TLNavigationRailTop(
