@@ -92,3 +92,57 @@ BEGIN
         WHERE email = user_data->>'email';
     END LOOP;
 END $$;
+
+DO $$
+DECLARE
+    vault_entry_data jsonb;
+    vault_entry_list jsonb[] := ARRAY[
+        '{"id": "120df762-9db5-493d-8f8b-c690edad6d56", "title": "Google", "uri": "https://google.com"}',
+        '{"id": "cf271202-2f68-49d8-b89c-847ed0b923f3", "title": "Facebook", "uri": "https://facebook.com"}',
+        '{"id": "08c25d60-5a0d-48be-9f85-b731be354dda", "title": "Instagram", "uri": "https://instagram.com"}',
+        '{"id": "ddb56f8b-7076-4203-ae1f-fc6ca084abeb", "title": "YouTube", "uri": "https://youtube.com"}',
+        '{"id": "32f5c956-4b50-440c-9467-decc85045271", "title": "Apple", "uri": "https://apple.com"}',
+        '{"id": "9c17db31-f38e-4698-bf08-05a0cc6be6be", "title": "Samsung", "uri": "https://samsung.com"}'
+    ];
+BEGIN
+    FOREACH vault_entry_data IN ARRAY vault_entry_list
+    LOOP
+        INSERT INTO public.vault_entries (
+            id,
+            title,
+            uri
+        )
+        VALUES (
+            (vault_entry_data->>'id')::UUID,
+            (vault_entry_data->>'title')::TEXT,
+            (vault_entry_data->>'uri')::TEXT
+        );
+    END LOOP;
+END $$;
+
+DO $$
+DECLARE
+    vault_content_data jsonb;
+    vault_content_list jsonb[] := ARRAY[
+        '{"vault_entry_id": "cf271202-2f68-49d8-b89c-847ed0b923f3", "user_id": "f95c9e45-0b17-4e85-88db-e150ab486634", "email": "fleeser@coderave.dev", "password": "password123"}',
+        '{"vault_entry_id": "08c25d60-5a0d-48be-9f85-b731be354dda", "user_id": "f95c9e45-0b17-4e85-88db-e150ab486634", "email": "fleeser@coderave.dev", "password": "123password"}',
+        '{"vault_entry_id": "ddb56f8b-7076-4203-ae1f-fc6ca084abeb", "user_id": "f95c9e45-0b17-4e85-88db-e150ab486634", "email": "fleeser@coderave.dev", "password": "!p!assword123"}',
+        '{"vault_entry_id": "9c17db31-f38e-4698-bf08-05a0cc6be6be", "user_id": "f95c9e45-0b17-4e85-88db-e150ab486634", "email": "fleeser@coderave.dev", "password": "pass?word1?2?3"}'
+    ];
+BEGIN
+    FOREACH vault_content_data IN ARRAY vault_content_list
+    LOOP
+        INSERT INTO public.vault_contents (
+            vault_entry_id,
+            user_id,
+            email,
+            password
+        )
+        VALUES (
+            (vault_content_data->>'vault_entry_id')::UUID,
+            (vault_content_data->>'user_id')::UUID,
+            (vault_content_data->>'email')::TEXT,
+            (vault_content_data->>'password')::TEXT
+        );
+    END LOOP;
+END $$;
