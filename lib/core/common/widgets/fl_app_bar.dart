@@ -19,6 +19,7 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? extraLeading;
   final Widget? extraTrailing;
+  final bool withNavigationRail;
 
   const FLAppBar({
     super.key,
@@ -27,7 +28,8 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actionButtons = const <FLAppBarButton>[],
     this.title,
     this.extraLeading,
-    this.extraTrailing
+    this.extraTrailing,
+    this.withNavigationRail = false
   });
 
   @override
@@ -60,7 +62,11 @@ class FLAppBar extends StatelessWidget implements PreferredSizeWidget {
       width: preferredSize.width,
       height: preferredSize.height,
       color: FLColors.white,
-      padding: EdgeInsets.only(top: context.topPadding),
+      padding: EdgeInsets.only(
+        top: context.topPadding,
+        left: (withNavigationRail ? 0.0 : context.leftPadding) + FLSpacing.lg,
+        right: context.rightPadding + FLSpacing.lg
+      ),
       child: Row(
         children: <Widget>[
           ...children

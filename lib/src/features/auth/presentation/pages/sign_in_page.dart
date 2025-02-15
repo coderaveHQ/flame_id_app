@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
+import 'package:flame_id_app/core/common/widgets/fl_max_width.dart';
 import 'package:flame_id_app/core/extensions/object_x.dart';
 import 'package:flame_id_app/src/features/auth/presentation/state/sign_in_state.dart';
 import 'package:flame_id_app/src/features/auth/presentation/state/sign_in_notifier_provider.dart';
@@ -55,57 +56,69 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     ref.listen(signInNotifierProvider, _handleSignInStateUpdate);
 
     return FLScaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          left: context.leftPadding + FLSpacing.lg,
-          right: context.rightPadding + FLSpacing.lg,
-          top: context.topPadding + FLSpacing.lg,
-          bottom: context.bottomPaddingOrKeyboard + FLSpacing.lg
-        ),
-        child: Column(
-          children: [
-            const FLText(
-              text: 'Willkommen bei Flame ID!',
-              alignment: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28.0,
-                fontWeight: FontWeight.w600,
-                color: FLColors.gray900
+      body: SizedBox.expand(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: context.leftPadding + FLSpacing.lg,
+            right: context.rightPadding + FLSpacing.lg,
+            top: context.topPadding + FLSpacing.lg,
+            bottom: context.bottomPaddingOrKeyboard + FLSpacing.lg
+          ),
+          child: Column(
+            children: [
+              const FLMaxWidth.withDefaultBreakpoint(
+                child: FLText(
+                  text: 'Willkommen bei Flame ID!',
+                  alignment: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28.0,
+                    fontWeight: FontWeight.w600,
+                    color: FLColors.gray900
+                  )
+                )
+              ),
+              const Gap(FLSpacing.lg),
+              const FLMaxWidth.withDefaultBreakpoint(
+                child: FLText(
+                  text: 'Melde dich an und schon kann es losgehen.',
+                  alignment: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w400,
+                    color: FLColors.gray700
+                  )
+                )
+              ),
+              const Gap(FLSpacing.xxl),
+              FLMaxWidth.withDefaultBreakpoint(
+                child: FLTextField(
+                  inputType: TextInputType.emailAddress,
+                  icon: LucideIcons.mail,
+                  controller: _emailController,
+                  hint: 'test@example.com',
+                  isEnabled: !signInState.isLoading
+                )
+              ),
+              const Gap(FLSpacing.lg),
+              FLMaxWidth.withDefaultBreakpoint(
+                child: FLTextField(
+                  icon: LucideIcons.lock,
+                  hint: '* * * * * *',
+                  controller: _passwordController,
+                  obscure: true,
+                  isEnabled: !signInState.isLoading
+                )
+              ),
+              const Gap(FLSpacing.lg),
+              FLMaxWidth.withDefaultBreakpoint(
+                child: FLRectangleButton(
+                  onPressed: _onSignIn,
+                  title: 'Anmelden',
+                  isLoading: signInState.isLoading
+                )
               )
-            ),
-            const Gap(FLSpacing.lg),
-            const FLText(
-              text: 'Melde dich an und schon kann es losgehen.',
-              alignment: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w400,
-                color: FLColors.gray700
-              )
-            ),
-            const Gap(FLSpacing.xxl),
-            FLTextField(
-              inputType: TextInputType.emailAddress,
-              icon: LucideIcons.mail,
-              controller: _emailController,
-              hint: 'test@example.com',
-              isEnabled: !signInState.isLoading
-            ),
-            const Gap(FLSpacing.lg),
-            FLTextField(
-              icon: LucideIcons.lock,
-              hint: '* * * * * *',
-              controller: _passwordController,
-              obscure: true,
-              isEnabled: !signInState.isLoading
-            ),
-            const Gap(FLSpacing.lg),
-            FLRectangleButton(
-              onPressed: _onSignIn,
-              title: 'Anmelden',
-              isLoading: signInState.isLoading
-            )
-          ]
+            ]
+          )
         )
       )
     );
