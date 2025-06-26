@@ -48,17 +48,7 @@ max_client_conn = 100
 [db.migrations]
 # Specifies an ordered list of schema files that describe your database.
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"
-schema_paths = [
-  "./schemas/fire_departments.sql",
-  "./schemas/fire_department_users.sql",
-  "./schemas/fire_department_addresses.sql",
-  "./schemas/fire_department_sub_units.sql",
-  "./schemas/fire_department_sub_unit_users.sql",
-  "./schemas/fire_department_sub_unit_addresses.sql",
-  "./schemas/_functions.sql",
-  "./schemas/_triggers.sql",
-  "./schemas/_rls_policies.sql"
-]
+# schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
@@ -177,19 +167,19 @@ otp_length = 6
 otp_expiry = 3600
 
 # Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 587
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "noreply@flame-id.coderave.dev"
+sender_name = "Flame ID"
 
 # Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+[auth.email.template.recovery]
+subject = "Reset Your Password"
+content_path = "./supabase/templates/recovery.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

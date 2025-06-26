@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MainApp());
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:flame_id_app/core/utils/env.dart';
+import 'package:flame_id_app/src/app.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await _initializeSupabase();
+
+  runApp(
+    ProviderScope(
+      child: const App()
+    )
+  );
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
-    );
-  }
+Future<void> _initializeSupabase() async {
+  await Supabase.initialize(
+    url: Env.supabaseUrl,
+    anonKey: Env.supabaseAnonKey
+  );
 }
