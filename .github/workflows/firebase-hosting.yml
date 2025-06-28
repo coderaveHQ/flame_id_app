@@ -1,0 +1,55 @@
+# Simple workflow for hosting the Web App to Firebase
+name: Firebase Hosting
+
+on:
+  # Runs on pushes targeting the production branch
+  push:
+    branches: ["production"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+
+  # Single deploy job
+  deploy:
+
+    # Run on latest Ubuntu instance
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Checkout repository
+      - uses: actions/checkout@v4
+
+      # Install Flutter
+      - name: Set Up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: 'stable'
+      
+      # Get packages
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      # Run code generation
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      # Build with secrets
+      - name: Build web with dart-define
+        run: |
+          flutter build web \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      # Deploy
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FLAMEIDAPP }}
+          channelId: live
+          projectId: flameidapp
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
