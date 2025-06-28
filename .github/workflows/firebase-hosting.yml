@@ -26,8 +26,8 @@ jobs:
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          flutter-version-file: pubspec.yaml
+          channel: stable
+          flutter-version: 3.32.0
       
       # Get packages
       - name: Get Flutter packages
