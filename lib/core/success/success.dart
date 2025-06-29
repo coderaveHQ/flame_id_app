@@ -18,9 +18,25 @@ class Success extends Equatable {
     : title = 'Anmeldung erfolgreich',
       description = 'Die Anmeldung war erfolgreich.';
 
+  const Success.signInWithOtpEmailSent()
+    : title = 'E-Mail gesendet',
+      description = 'Wir haben dir eine E-Mail gesendet.';
+
   const Success.resetPasswordEmailSent()
     : title = 'E-Mail gesendet',
       description = 'Wir haben dir eine E-Mail gesendet.';
+
+  const Success.changeEmailEmailSent()
+    : title = 'E-Mail gesendet',
+      description = 'Wir haben dir eine E-Mail gesendet.';
+
+  const Success.emailChanged()
+    : title = 'E-Mail geändert',
+      description = 'Wir haben deine E-Mail geändert.';
+
+  const Success.passwordChanged()
+    : title = 'Passwort geändert',
+      description = 'Wir haben dein Passwort geändert.';
 
   const Success.signedOut()
     : title = 'Abmeldung erfolgreich',

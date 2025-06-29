@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 
 import 'package:flame_id_app/core/utils/toaster.dart';
 
-class Failure extends Equatable {
+abstract class Failure extends Equatable {
 
   final String title;
   final String description;
@@ -16,16 +16,16 @@ class Failure extends Equatable {
     this.stackTrace
   });
 
-  const Failure.unknown()
-      : title = 'Unbekannter Fehler',
-        description = 'Ein unbekannter Fehler ist aufgetreten',
-        stackTrace = null;
+  const Failure.unknown({
+    this.stackTrace,
+  }) : title = 'Unbekannter Fehler',
+       description = 'Ein unbekannter Fehler ist aufgetreten.';
 
   void showToast(BuildContext context) {
     Toaster.showError(
       context: context,
       title: title,
-      description: description,
+      description: description
     );
   }
 

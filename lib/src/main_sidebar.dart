@@ -34,7 +34,6 @@ class MainSidebar extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(color: context.theme.colors.background),
       child: FSidebar(
-        width: 300.0,
         header: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(

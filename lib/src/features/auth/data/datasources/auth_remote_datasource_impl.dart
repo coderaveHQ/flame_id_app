@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flame_id_app/core/utils/redirect_urls.dart';
+import 'package:flame_id_app/core/utils/typedefs.dart';
 import 'package:flame_id_app/src/features/auth/data/datasources/auth_remote_datasource.dart';
 
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
@@ -15,7 +17,41 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }) async {
     final AuthResponse _ = await _client.auth.signInWithPassword(
       email: email,
-      password: password,
+      password: password
+    );
+  }
+
+  @override
+  Future<void> signInWithOtp({
+    required String email
+  }) async {
+    await _client.auth.signInWithOtp(
+      email: email,
+      emailRedirectTo: RedirectUrls.magicLink
+    );
+  }
+
+  @override
+  Future<void> resendSignInOtp({
+    required String email
+  }) async {
+    await _client.auth.resend(
+      type: OtpType.email,
+      email: email,
+      emailRedirectTo: RedirectUrls.magicLink
+    );
+  }
+
+  @override
+  Future<void> verifySignInOtp({
+    required String email,
+    required String otp
+  }) async {
+    await _client.auth.verifyOTP(
+      type: OtpType.email,
+      email: email,
+      token: otp,
+      redirectTo: RedirectUrls.magicLink
     );
   }
 
@@ -23,8 +59,77 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   Future<void> resetPasswordForEmail({
     required String email
   }) async {
-    // TODO: Implement redirection
-    await _client.auth.resetPasswordForEmail(email);
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: RedirectUrls.resetPassword
+    );
+  }
+
+  @override
+  Future<void> resendResetPasswordOtp({
+    required String email
+  }) async {
+    await _client.auth.resend(
+      type: OtpType.recovery,
+      email: email,
+      emailRedirectTo: RedirectUrls.resetPassword
+    );
+  }
+
+  @override
+  Future<void> verifyResetPasswordOtp({
+    required String email,
+    required String otp
+  }) async {
+    await _client.auth.verifyOTP(
+      type: OtpType.recovery,
+      email: email,
+      token: otp,
+      redirectTo: RedirectUrls.resetPassword
+    );
+  }
+
+  @override
+  Future<void> changeEmail({
+    required String newEmail
+  }) async {
+    await _client.auth.updateUser(
+      UserAttributes(email: newEmail),
+      emailRedirectTo: RedirectUrls.changeEmail
+    );
+  }
+
+  @override
+  Future<void> resendChangeEmailOtp({
+    required String newEmail
+  }) async {
+    await _client.auth.resend(
+      type: OtpType.emailChange,
+      email: newEmail,
+      emailRedirectTo: RedirectUrls.changeEmail
+    );
+  }
+
+  @override
+  Future<void> verifyChangeEmailOtp({
+    required String newEmail,
+    required String otp
+  }) async {
+    await _client.auth.verifyOTP(
+      type: OtpType.emailChange,
+      email: newEmail,
+      token: otp,
+      redirectTo: RedirectUrls.changeEmail
+    );
+  }
+
+  @override
+  Future<void> changePassword({
+    required String newPassword
+  }) async {
+    await _client.auth.updateUser(
+      UserAttributes(password: newPassword)
+    );
   }
 
   @override
@@ -33,7 +138,12 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
-  Stream<AuthState> onAuthStateChanges() {
+  Stream<SupabaseAuthState> onAuthStateChange() {
     return _client.auth.onAuthStateChange;
+  }
+
+  @override
+  SupabaseAuthSession? get currentAuthSession {
+    return _client.auth.currentSession;
   }
 }

@@ -4,6 +4,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'package:flame_id_app/src/features/auth/presentation/widgets/custom_auth_state_handler.dart';
 import 'package:flame_id_app/core/services/router.dart';
 
 class App extends ConsumerWidget {
@@ -14,14 +15,16 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
 
     final GoRouter router = ref.watch(routerProvider);
-    
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       builder: (context, child) => FTheme(
         data: FThemes.zinc.light,
         child: FToaster(
-          child: child!
+          child: CustomAuthStateHandler(
+            child: child!
+          )
         )
       )
     );

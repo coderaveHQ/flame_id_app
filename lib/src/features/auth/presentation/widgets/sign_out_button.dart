@@ -5,12 +5,11 @@ import 'package:dartz/dartz.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'package:flame_id_app/src/features/auth/presentation/widgets/sign_out_button_alert.dart';
 import 'package:flame_id_app/core/error/failures/failure.dart';
-import 'package:flame_id_app/core/success/success.dart';
 import 'package:flame_id_app/src/features/auth/domain/usecases/sign_out_usecase.dart';
-import 'package:flame_id_app/src/features/auth/presentation/providers/sign_out_usecase_provider.dart';
 
-class SignOutButton extends StatefulHookConsumerWidget {
+class SignOutButton extends ConsumerStatefulWidget {
 
   const SignOutButton({ super.key });
 
@@ -20,28 +19,24 @@ class SignOutButton extends StatefulHookConsumerWidget {
 
 class _SignOutButtonState extends ConsumerState<SignOutButton> {
 
-  late final ValueNotifier<bool> _isLoadingNotifier;
+  bool _isSignOutLoading = false;
+
   late final SignOutUsecase _signOutUseCase;
 
   @override
   void initState() {
     super.initState();
 
-    _isLoadingNotifier = ValueNotifier<bool>(false);
     _signOutUseCase = ref.read(signOutUsecaseProvider);
   }
 
-  @override
-  void dispose() {
-    _isLoadingNotifier.dispose();
-
-    super.dispose();
-  }
-
   Future<void> _handleSignOut() async {
-    if (_isLoadingNotifier.value) return;
+    if (_isSignOutLoading) return;
 
-    _isLoadingNotifier.value = true;
+    final bool shouldSignOut = await showSignOutButtonAlert(context);
+    if (!shouldSignOut) return;
+
+    setState(() => _isSignOutLoading = true);
 
     final Either<Failure, Unit> signOutResult = await _signOutUseCase();
 
@@ -51,14 +46,10 @@ class _SignOutButtonState extends ConsumerState<SignOutButton> {
           failure.showToast(context);
         }
       },
-      (Unit _) {
-        if (mounted) {
-          const Success.signedOut().showToast(context);
-        }
-      }
+      (Unit _) { }
     );
 
-    _isLoadingNotifier.value = false;
+    if (mounted) setState(() => _isSignOutLoading = false);
   }
 
   @override
@@ -67,7 +58,7 @@ class _SignOutButtonState extends ConsumerState<SignOutButton> {
       tipBuilder: (BuildContext _, FTooltipStyle _, Widget? _) => const Text('Abmelden'),
       child: FButton.icon(
         onPress: _handleSignOut,
-        child: _isLoadingNotifier.value
+        child: _isSignOutLoading
           ? const FProgress.circularIcon()
           : Icon(FIcons.logOut)
       )

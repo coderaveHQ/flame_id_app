@@ -1,9 +1,19 @@
 import 'package:dartz/dartz.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:flame_id_app/core/error/failures/failure.dart';
 import 'package:flame_id_app/core/error/failures/validation_failure.dart';
 import 'package:flame_id_app/core/utils/validator.dart';
 import 'package:flame_id_app/src/features/auth/domain/repositories/auth_repository.dart';
+
+part 'sign_in_with_email_and_password_usecase.g.dart';
+
+@riverpod
+SignInWithEmailAndPasswordUsecase signInWithEmailAndPasswordUsecase(Ref ref) {
+  final AuthRepository authRepository = ref.watch(authRepositoryProvider);
+  return SignInWithEmailAndPasswordUsecase(authRepository);
+}
 
 class SignInWithEmailAndPasswordUsecase {
 

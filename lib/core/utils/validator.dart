@@ -12,8 +12,18 @@ class Validator {
   }
 
   static ValidationFailure? validatePassword(String password) {
-    if (password.length < 6 || password.length > 128) {
+    final RegExp regExp = RegExp(r'^.{6,}$');
+    if (!regExp.hasMatch(password)) {
       return const ValidationFailure.invalidPassword();
+    }
+
+    return null;
+  }
+
+  static ValidationFailure? validateOtp(String otp) {
+    final RegExp regExp = RegExp(r'^\d{6}$');
+    if (!regExp.hasMatch(otp)) {
+      return const ValidationFailure.invalidOtpToken();
     }
 
     return null;

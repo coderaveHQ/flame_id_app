@@ -6,6 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:flame_id_app/src/features/auth/presentation/pages/verify_change_email_page.dart';
+import 'package:flame_id_app/src/features/auth/presentation/pages/verify_sign_in_page.dart';
+import 'package:flame_id_app/src/features/auth/presentation/pages/verify_reset_password_page.dart';
+import 'package:flame_id_app/src/features/auth/presentation/pages/change_password_page.dart';
+import 'package:flame_id_app/src/features/auth/presentation/pages/change_email_page.dart';
 import 'package:flame_id_app/src/features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flame_id_app/core/error/error_page.dart';
 import 'package:flame_id_app/src/features/auth/presentation/providers/custom_auth_state_notifier_provider.dart';
@@ -22,6 +27,9 @@ import 'package:flame_id_app/src/features/users/presentation/pages/users_page.da
 import 'package:flame_id_app/src/main_page.dart';
 
 part 'router.g.dart';
+
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
 
 @riverpod
 GoRouter router(Ref ref) {
@@ -45,8 +53,20 @@ GoRouter router(Ref ref) {
         return currentCustomAuthStatus.redirectPath;
       }
 
+      if (state.fullPath == VerifyResetPasswordRoute.fullPath && state.extra == null) {
+        return ResetPasswordRoute.fullPath;
+      }
+
+      if (state.fullPath == VerifySignInRoute.fullPath && state.extra == null) {
+        return SignInRoute.fullPath;
+      }
+
+      if (state.fullPath == VerifyChangeEmailRoute.fullPath && state.extra == null) {
+        return ChangeEmailRoute.fullPath;
+      }
+
       return null;
-    }
+    },
   );
 
   ref
@@ -55,8 +75,8 @@ GoRouter router(Ref ref) {
       router.dispose();
     })
     ..listen(
-      customAuthStateNotifierProvider, 
-      (CustomAuthState? last, CustomAuthState next) => customAuthStateNotifier.value = next
+      customAuthStateNotifierProvider,
+      (CustomAuthState? _, CustomAuthState next) => customAuthStateNotifier.value = next
     );
 
   return router;
@@ -65,10 +85,10 @@ GoRouter router(Ref ref) {
 class ExtraCodec extends Codec<Object?, Object?> {
 
   const ExtraCodec();
-  
+
   @override
   Converter<Object?, Object?> get decoder => const ExtraDecoder();
-  
+
   @override
   Converter<Object?, Object?> get encoder => const ExtraEncoder();
 }
@@ -76,7 +96,7 @@ class ExtraCodec extends Codec<Object?, Object?> {
 class ExtraDecoder extends Converter<Object?, Object?> {
 
   const ExtraDecoder();
-  
+
   @override
   Object? convert(Object? input) {
     return null;
@@ -86,7 +106,7 @@ class ExtraDecoder extends Converter<Object?, Object?> {
 class ExtraEncoder extends Converter<Object?, Object?> {
 
   const ExtraEncoder();
-  
+
   @override
   Object? convert(Object? input) {
     return null;
@@ -97,17 +117,13 @@ class ErrorRoute extends GoRouteData {
 
   final Exception error;
 
-  const ErrorRoute({
-    required this.error
-  });
+  const ErrorRoute({ required this.error });
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return ErrorPage(error: error);
   }
 }
-
-final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 @TypedGoRoute<SplashRoute>(path: SplashRoute.path)
 class SplashRoute extends GoRouteData with _$SplashRoute {
@@ -116,9 +132,16 @@ class SplashRoute extends GoRouteData with _$SplashRoute {
 
   static const String path = '/';
   static const String fullPath = path;
+
+  static final GlobalKey<NavigatorState> $navigatorKey = rootNavigatorKey;
 }
 
-@TypedGoRoute<SignInRoute>(path: SignInRoute.path)
+@TypedGoRoute<SignInRoute>(
+  path: SignInRoute.path,
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<VerifySignInRoute>(path: VerifySignInRoute.path),
+  ]
+)
 class SignInRoute extends GoRouteData with _$SignInRoute {
 
   const SignInRoute();
@@ -130,17 +153,36 @@ class SignInRoute extends GoRouteData with _$SignInRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const SignInPage()
-    );
+    return NoTransitionPage(child: const SignInPage());
   }
 }
 
-@TypedGoRoute<ResetPasswordRoute>(path: ResetPasswordRoute.path)
+class VerifySignInRoute extends GoRouteData with _$VerifySignInRoute {
+  
+  const VerifySignInRoute(this.$extra);
+
+  final String $extra;
+
+  static const String path = 'verify';
+  static const String fullPath = '${SignInRoute.fullPath}/$path';
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return VerifySignInPage(email: $extra);
+  }
+}
+
+@TypedGoRoute<ResetPasswordRoute>(
+  path: ResetPasswordRoute.path,
+  routes: <TypedRoute<RouteData>>[
+    TypedGoRoute<VerifyResetPasswordRoute>(path: VerifyResetPasswordRoute.path),
+  ]
+)
 class ResetPasswordRoute extends GoRouteData with _$ResetPasswordRoute {
 
-  const ResetPasswordRoute();
+  const ResetPasswordRoute(this.$extra);
+
+  final String? $extra;
 
   static const String path = '/reset-password';
   static const String fullPath = path;
@@ -149,11 +191,24 @@ class ResetPasswordRoute extends GoRouteData with _$ResetPasswordRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    return const ResetPasswordPage();
+    return ResetPasswordPage(email: $extra);
   }
 }
 
-final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
+class VerifyResetPasswordRoute extends GoRouteData with _$VerifyResetPasswordRoute {
+  
+  const VerifyResetPasswordRoute(this.$extra);
+
+  final String $extra;
+
+  static const String path = 'verify';
+  static const String fullPath = '${ResetPasswordRoute.fullPath}/$path';
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return VerifyResetPasswordPage(email: $extra);
+  }
+}
 
 @TypedShellRoute<MainRoute>(
   routes: <TypedRoute<RouteData>>[
@@ -165,7 +220,18 @@ final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>();
     TypedGoRoute<NotificationsRoute>(path: NotificationsRoute.path),
     TypedGoRoute<PasswordsRoute>(path: PasswordsRoute.path),
     TypedGoRoute<PersonalDataRoute>(path: PersonalDataRoute.path),
-    TypedGoRoute<SettingsRoute>(path: SettingsRoute.path)
+    TypedGoRoute<SettingsRoute>(
+      path: SettingsRoute.path,
+      routes: <TypedRoute<RouteData>>[
+        TypedGoRoute<ChangeEmailRoute>(
+          path: ChangeEmailRoute.path,
+          routes: <TypedRoute<RouteData>>[
+            TypedGoRoute<VerifyChangeEmailRoute>(path: VerifyChangeEmailRoute.path),
+          ]
+        ),
+        TypedGoRoute<ChangePasswordRoute>(path: ChangePasswordRoute.path)
+      ]
+    )
   ]
 )
 class MainRoute extends ShellRouteData {
@@ -176,10 +242,7 @@ class MainRoute extends ShellRouteData {
 
   @override
   Page<void> pageBuilder(BuildContext context, GoRouterState state, Widget navigator) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: MainPage(navigator: navigator)
-    );
+    return NoTransitionPage(child: MainPage(navigator: navigator));
   }
 }
 
@@ -194,10 +257,7 @@ class UsersRoute extends GoRouteData with _$UsersRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const UsersPage()
-    );
+    return NoTransitionPage(child: const UsersPage());
   }
 }
 
@@ -212,10 +272,7 @@ class CertificatesRoute extends GoRouteData with _$CertificatesRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const CertificatesPage()
-    );
+    return NoTransitionPage(child: const CertificatesPage());
   }
 }
 
@@ -230,10 +287,7 @@ class DrivingLicensesRoute extends GoRouteData with _$DrivingLicensesRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const DrivingLicensesPage()
-    );
+    return NoTransitionPage(child: const DrivingLicensesPage());
   }
 }
 
@@ -248,10 +302,7 @@ class DroneLicensesRoute extends GoRouteData with _$DroneLicensesRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const DroneLicensesPage()
-    );
+    return NoTransitionPage(child: const DroneLicensesPage());
   }
 }
 
@@ -266,10 +317,7 @@ class ChatsRoute extends GoRouteData with _$ChatsRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const ChatsPage()
-    );
+    return NoTransitionPage(child: const ChatsPage());
   }
 }
 
@@ -284,10 +332,7 @@ class NotificationsRoute extends GoRouteData with _$NotificationsRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const NotificationsPage()
-    );
+    return NoTransitionPage(child: const NotificationsPage());
   }
 }
 
@@ -302,10 +347,7 @@ class PasswordsRoute extends GoRouteData with _$PasswordsRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const PasswordsPage()
-    );
+    return NoTransitionPage(child: const PasswordsPage());
   }
 }
 
@@ -320,10 +362,7 @@ class PersonalDataRoute extends GoRouteData with _$PersonalDataRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const PersonalDataPage()
-    );
+    return NoTransitionPage(child: const PersonalDataPage());
   }
 }
 
@@ -338,9 +377,53 @@ class SettingsRoute extends GoRouteData with _$SettingsRoute {
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
-    return NoTransitionPage(
-      key: state.pageKey,
-      child: const SettingsPage()
-    );
+    return NoTransitionPage(child: const SettingsPage());
+  }
+}
+
+class ChangeEmailRoute extends GoRouteData with _$ChangeEmailRoute {
+
+  const ChangeEmailRoute();
+
+  static const String path = 'change-email';
+  static const String fullPath = '${SettingsRoute.fullPath}/$path';
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ChangeEmailPage(key: state.pageKey);
+  }
+}
+
+class VerifyChangeEmailRoute extends GoRouteData with _$VerifyChangeEmailRoute {
+  
+  const VerifyChangeEmailRoute(this.$extra);
+
+  final String $extra;
+
+  static const String path = 'verify';
+  static const String fullPath = '${ChangeEmailRoute.fullPath}/$path';
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return VerifyChangeEmailPage(newEmail: $extra);
+  }
+}
+
+class ChangePasswordRoute extends GoRouteData with _$ChangePasswordRoute {
+  
+  const ChangePasswordRoute();
+
+  static const String path = 'change-password';
+  static const String fullPath = '${SettingsRoute.fullPath}/$path';
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey = rootNavigatorKey;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ChangePasswordPage(key: state.pageKey);
   }
 }

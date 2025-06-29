@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Flutter (any)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define-from-file=.env.local"
+      ]
+    },
+    {
       "name": "Flutter (macOS)",
       "type": "dart",
       "request": "launch",
@@ -10,10 +20,18 @@
       "deviceId": "macos",
       "args": [
         "--dart-define-from-file=.env.local"
-      ],
-      "env": {
-        "FLUTTER_TEST_DEVICE": "macos"
-      }
+      ]
+    },
+    {
+      "name": "Flutter (Windows)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "deviceId": "windows",
+      "args": [
+        "--dart-define-from-file=.env.local"
+      ]
     },
     {
       "name": "Flutter (Chrome)",
@@ -25,38 +43,7 @@
       "args": [
         "--dart-define-from-file=.env.local",
         "--web-port=8080"
-      ],
-      "env": {
-        "FLUTTER_TEST_DEVICE": "chrome"
-      }
-    },
-    {
-      "name": "Flutter (iPhone Simulator)",
-      "type": "dart",
-      "request": "launch",
-      "program": "lib/main.dart",
-      "flutterMode": "debug",
-      "deviceId": "iphone",
-      "args": [
-        "--dart-define-from-file=.env.local"
-      ],
-      "env": {
-        "FLUTTER_TEST_DEVICE": "ios"
-      }
-    },
-    {
-      "name": "Flutter (iPad Simulator)",
-      "type": "dart",
-      "request": "launch",
-      "program": "lib/main.dart",
-      "flutterMode": "debug",
-      "deviceId": "ipad",
-      "args": [
-        "--dart-define-from-file=.env.local"
-      ],
-      "env": {
-        "FLUTTER_TEST_DEVICE": "ios"
-      }
+      ]
     }
   ]
 }

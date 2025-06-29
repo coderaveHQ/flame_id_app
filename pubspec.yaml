@@ -4,10 +4,13 @@ publish_to: 'none'
 version: 0.1.0
 
 environment:
-  sdk: ^3.8.0
+  sdk: 3.8.0
+  flutter: 3.32.0
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_web_plugins:
     sdk: flutter
 
   # Supabase
@@ -25,6 +28,9 @@ dependencies:
   forui: ^0.12.0
   forui_assets: ^0.12.0
   forui_hooks: ^0.12.0
+
+  # UI
+  pinput: ^5.0.1
 
   # Helpers
   dartz: ^0.10.1

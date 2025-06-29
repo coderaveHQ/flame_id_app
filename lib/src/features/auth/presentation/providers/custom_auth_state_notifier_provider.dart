@@ -3,11 +3,12 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flame_id_app/core/extensions/generic_x.dart';
+import 'package:flame_id_app/src/features/auth/domain/usecases/on_auth_state_change_usecase.dart';
 import 'package:flame_id_app/core/error/failures/failure.dart';
-import 'package:flame_id_app/src/features/auth/presentation/providers/on_auth_state_changes_usecase_provider.dart';
 import 'package:flame_id_app/core/utils/typedefs.dart';
+import 'package:flame_id_app/src/features/auth/domain/usecases/current_auth_state_usecase.dart';
 import 'package:flame_id_app/core/services/router.dart';
 
 part 'custom_auth_state_notifier_provider.g.dart';
@@ -15,21 +16,22 @@ part 'custom_auth_state_notifier_provider.g.dart';
 @riverpod
 class CustomAuthStateNotifier extends _$CustomAuthStateNotifier {
 
-  late final StreamSubscription<Either<Failure, CustomAuthState>> _supabaseAuthStateSubscription;
+  late final StreamSubscription<Either<Failure, CustomAuthState>> _authStateSubscription;
 
   @override
   CustomAuthState build() {
-    _initSupabaseAuthListener();
+    _initAuthStateListener();
 
     ref.onDispose(() {
-      _cancelSupabaseAuthListener();
+      _cancelAuthStateListener();
     });
 
-    return CustomAuthState.fromCurrentSupabaseAuthState();
+    final CurrentAuthStateUsecase currentAuthStateUsecase = ref.read(currentAuthStateUsecaseProvider);
+    return currentAuthStateUsecase();
   }
 
-  void _initSupabaseAuthListener() {
-    _supabaseAuthStateSubscription = ref.watch(onAuthStateChangesUsecaseProvider).call().listen(
+  void _initAuthStateListener() {
+    _authStateSubscription = ref.read(onAuthStateChangeUsecaseProvider).call().listen(
       (Either<Failure, CustomAuthState> result) {
         result.fold(
           (Failure failure) { },
@@ -39,8 +41,8 @@ class CustomAuthStateNotifier extends _$CustomAuthStateNotifier {
     );
   }
 
-  void _cancelSupabaseAuthListener() {
-    _supabaseAuthStateSubscription.cancel();
+  void _cancelAuthStateListener() {
+    _authStateSubscription.cancel();
   }
 }
 
@@ -50,7 +52,9 @@ enum CustomAuthStatus {
     redirectPath: SignInRoute.fullPath,
     allowedPaths: <String>[
       SignInRoute.fullPath,
-      ResetPasswordRoute.fullPath
+      VerifySignInRoute.fullPath,
+      ResetPasswordRoute.fullPath,
+      VerifyResetPasswordRoute.fullPath
     ]
   ),
   authenticated(
@@ -64,8 +68,11 @@ enum CustomAuthStatus {
       NotificationsRoute.fullPath,
       PasswordsRoute.fullPath,
       PersonalDataRoute.fullPath,
+      UsersRoute.fullPath,
       SettingsRoute.fullPath,
-      UsersRoute.fullPath
+      ChangeEmailRoute.fullPath,
+      VerifyChangeEmailRoute.fullPath,
+      ChangePasswordRoute.fullPath
     ]
   );
 
@@ -78,23 +85,93 @@ enum CustomAuthStatus {
   });
 }
 
-class CustomAuthState extends Equatable {
+class CustomAuthUser extends Equatable {
 
-  final CustomAuthStatus status;
-  
-  const CustomAuthState({
-    required this.status
+  final String email;
+  final String? newEmail;
+
+  const CustomAuthUser({
+    required this.email,
+    this.newEmail
   });
 
-  factory CustomAuthState.fromSupabaseAuthSession(SupabaseAuthSession? supabaseAuthSession) {
-    final CustomAuthStatus status = supabaseAuthSession == null ? CustomAuthStatus.unauthenticated : CustomAuthStatus.authenticated;
-    return CustomAuthState(status: status);
-  }
-
-  factory CustomAuthState.fromCurrentSupabaseAuthState() {
-    return CustomAuthState.fromSupabaseAuthSession(Supabase.instance.client.auth.currentSession);
+  factory CustomAuthUser.fromSupabaseAuthSession(SupabaseAuthSession session) {
+    return CustomAuthUser(
+      email: session.user.email!,
+      newEmail: session.user.newEmail
+    );
   }
 
   @override
-  List<Object?> get props => [ status ];
+  List<Object?> get props => [ 
+    email,
+    newEmail
+  ];
 }
+
+class CustomAuthState extends Equatable {
+
+  final CustomAuthStatus status;
+  final CustomAuthUser? user;
+  final SupabaseAuthChangeEvent? event;
+  
+  const CustomAuthState({
+    required this.status,
+    this.user,
+    this.event
+  });
+
+  @override
+  List<Object?> get props => [ 
+    status,
+    user,
+    event
+  ];
+
+  factory CustomAuthState.fromSupabaseAuthSession(
+    SupabaseAuthSession? supabaseAuthSession, {
+    SupabaseAuthChangeEvent? event
+  }) {
+    final CustomAuthStatus status = supabaseAuthSession == null ? CustomAuthStatus.unauthenticated : CustomAuthStatus.authenticated;
+    final CustomAuthUser? user = supabaseAuthSession.whenNotNull((SupabaseAuthSession session) => CustomAuthUser.fromSupabaseAuthSession(session));
+    return CustomAuthState(
+      status: status,
+      user: user,
+      event: event
+    );
+  }
+
+  factory CustomAuthState.fromSupabaseAuthState(SupabaseAuthState supabaseAuthState) {
+    return CustomAuthState.fromSupabaseAuthSession(
+      supabaseAuthState.session,
+      event: supabaseAuthState.event
+    );
+  }
+}
+
+/*
+
+At start:
+------------
+flutter: confirmationSentAt: null
+flutter: email: fleeser@coderave.dev
+flutter: newEmail: null
+flutter: emailChangeSentAt: null
+flutter: emailConfirmedAt: 2025-06-29T17:55:44.613679Z
+
+When E-Mail sent:
+-------------------
+flutter: confirmationSentAt: null
+flutter: email: fleeser@coderave.dev
+flutter: newEmail: florian.leeser@icloud.com
+flutter: emailChangeSentAt: 2025-06-29T17:59:12.471916211Z
+flutter: emailConfirmedAt: 2025-06-29T17:55:44.613679Z
+
+When done:
+-------------------
+flutter: confirmationSentAt: null
+flutter: email: florian.leeser@icloud.com
+flutter: newEmail: null
+flutter: emailChangeSentAt: 2025-06-29T17:59:12.471916Z
+flutter: emailConfirmedAt: 2025-06-29T17:55:44.613679Z
+*/

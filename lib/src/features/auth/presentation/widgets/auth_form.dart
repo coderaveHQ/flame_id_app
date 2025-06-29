@@ -43,7 +43,10 @@ class AuthForm extends StatelessWidget {
           subtitle: Text(subtitle),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: children
+            children: <Widget>[
+              const SizedBox(height: 10.0),
+              ...children
+            ]
           )
         )
       )

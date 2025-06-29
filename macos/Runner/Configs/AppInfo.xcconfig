@@ -8,7 +8,7 @@
 PRODUCT_NAME = Flame ID
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = dev.coderave.flameIdApp
+PRODUCT_BUNDLE_IDENTIFIER = dev.coderave.flameidapp
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 dev.coderave. All rights reserved.

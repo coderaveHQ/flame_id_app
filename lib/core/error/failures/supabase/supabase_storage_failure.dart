@@ -1,8 +1,8 @@
 import 'package:flame_id_app/core/error/failures/failure.dart';
 
-class StorageFailure extends Failure {
+class SupabaseStorageFailure extends Failure {
 
-  const StorageFailure()
+  const SupabaseStorageFailure()
       : super(
           title: 'Speicherfehler',
           description: 'Ein Fehler beim Zugriff auf den Speicherdienst ist aufgetreten.'

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import 'package:flame_id_app/core/error/exception_handler.dart';
 import 'package:flame_id_app/core/error/failures/failure.dart';
+import 'package:flame_id_app/core/utils/typedefs.dart';
 import 'package:flame_id_app/src/features/auth/presentation/providers/custom_auth_state_notifier_provider.dart';
 import 'package:flame_id_app/src/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:flame_id_app/src/features/auth/domain/repositories/auth_repository.dart';
@@ -15,7 +16,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, Unit>> signInWithEmailAndPassword({
     required String email,
-    required String password,
+    required String password
   }) async {
     return handleAsyncExceptions(() async {
       await _remoteDataSource.signInWithEmailAndPassword(
@@ -27,9 +28,113 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> resetPasswordForEmail({required String email}) async {
+  Future<Either<Failure, Unit>> signInWithOtp({
+    required String email
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.signInWithOtp(email: email);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> resendSignInOtp({
+    required String email
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.resendSignInOtp(email: email);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> verifySignInOtp({
+    required String email,
+    required String otp
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.verifySignInOtp(
+        email: email,
+        otp: otp
+      );
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> resetPasswordForEmail({
+    required String email
+  }) async {
     return handleAsyncExceptions(() async {
       await _remoteDataSource.resetPasswordForEmail(email: email);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> resendResetPasswordOtp({
+    required String email
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.resendResetPasswordOtp(email: email);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> verifyResetPasswordOtp({
+    required String email,
+    required String otp
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.verifyResetPasswordOtp(
+        email: email,
+        otp: otp
+      );
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> changeEmail({
+    required String newEmail
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.changeEmail(newEmail: newEmail);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> resendChangeEmailOtp({
+    required String newEmail
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.resendChangeEmailOtp(newEmail: newEmail);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> verifyChangeEmailOtp({
+    required String newEmail,
+    required String otp
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.verifyChangeEmailOtp(
+        newEmail: newEmail,
+        otp: otp
+      );
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> changePassword({
+    required String newPassword,
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.changePassword(newPassword: newPassword);
       return unit;
     });
   }
@@ -43,9 +148,15 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Stream<Either<Failure, CustomAuthState>> onAuthStateChanges() {
-    return handleStreamExceptions(() => _remoteDataSource.onAuthStateChanges().map((supabaseAuthState) {
-      return CustomAuthState.fromSupabaseAuthSession(supabaseAuthState.session);
+  Stream<Either<Failure, CustomAuthState>> onAuthStateChange() {
+    return handleStreamExceptions(() => _remoteDataSource.onAuthStateChange().map((SupabaseAuthState supabaseAuthState) {
+      return CustomAuthState.fromSupabaseAuthState(supabaseAuthState);
     }));
+  }
+
+  @override
+  CustomAuthState get currentAuthState {
+    final SupabaseAuthSession? supabaseAuthSession = _remoteDataSource.currentAuthSession;
+    return CustomAuthState.fromSupabaseAuthSession(supabaseAuthSession);
   }
 }

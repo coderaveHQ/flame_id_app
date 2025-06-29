@@ -5,15 +5,20 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import 'package:flame_id_app/core/services/router.dart';
 import 'package:flame_id_app/src/features/auth/presentation/widgets/auth_form.dart';
-import 'package:flame_id_app/src/features/auth/presentation/providers/reset_password_for_email_usecase_provider.dart';
 import 'package:flame_id_app/src/features/auth/domain/usecases/reset_password_for_email_usecase.dart';
 import 'package:flame_id_app/core/success/success.dart';
 import 'package:flame_id_app/core/error/failures/failure.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
+  
+  final String? email;
 
-  const ResetPasswordPage({ super.key });
+  const ResetPasswordPage({ 
+    super.key,
+    this.email
+  });
 
   @override
   ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
@@ -23,15 +28,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   bool _isResetPasswordForEmailLoading = false;
 
-  late final ResetPasswordForEmailUsecase _resetPasswordForEmailUseCase;
+  late final ResetPasswordForEmailUsecase _resetPasswordForEmailUsecase;
   
-  final TextEditingController _emailController = TextEditingController();
+  late final TextEditingController _emailController;
 
   @override
   void initState() {
     super.initState();
 
-    _resetPasswordForEmailUseCase = ref.read(resetPasswordForEmailUsecaseProvider);
+    _resetPasswordForEmailUsecase = ref.read(resetPasswordForEmailUsecaseProvider);
+
+    _emailController = TextEditingController(text: widget.email);
   }
 
   @override
@@ -51,25 +58,27 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
     setState(() => _isResetPasswordForEmailLoading = true);
 
-    final Either<Failure, Unit> resetPasswordResult = await _resetPasswordForEmailUseCase(
-      email: _emailController.text.toLowerCase().trim()
+    final String email = _emailController.text.toLowerCase().trim();
+
+    final Either<Failure, Unit> resetPasswordForEmailResult = await _resetPasswordForEmailUsecase(
+      email: email
     );
 
-    resetPasswordResult.fold(
+    await resetPasswordForEmailResult.fold(
       (Failure failure) {
         if (mounted) {
           failure.showToast(context);
         }
       },
-      (Unit _) {
+      (Unit _) async {
         if (mounted) {
           const Success.resetPasswordEmailSent().showToast(context);
-          context.pop();
+          await VerifyResetPasswordRoute(email).push(context);
         }
       }
     );
 
-    setState(() => _isResetPasswordForEmailLoading = false);
+    if (mounted) setState(() => _isResetPasswordForEmailLoading = false);
   }
 
   @override
