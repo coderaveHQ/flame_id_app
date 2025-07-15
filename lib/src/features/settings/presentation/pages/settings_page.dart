@@ -54,21 +54,21 @@ class SettingsPage extends ConsumerWidget {
               children: [
                 FTile(
                   onPress: () async => await _handleChangeEmail(context, customAuthState.user!.newEmail),
-                  prefixIcon: Icon(FIcons.mail),
+                  prefix: Icon(FIcons.mail),
                   title: const Text('E-Mail ändern'),
                   details: Text(customAuthState.user!.email),
                   subtitle: Text(
                     customAuthState.user!.newEmail.whenNotNull((String newEmail) => 'Änderung angefordert: $newEmail') 
                       ?? 'Ändere deine E-Mail-Adresse.',
                   ),
-                  suffixIcon: Icon(FIcons.chevronRight)
+                  suffix: Icon(FIcons.chevronRight)
                 ),
                 FTile(
                   onPress: () async => await _handleChangePassword(context),
-                  prefixIcon: Icon(FIcons.lock),
+                  prefix: Icon(FIcons.lock),
                   title: const Text('Passwort ändern'),
                   subtitle: const Text('Ändere dein Passwort.'),
-                  suffixIcon: Icon(FIcons.chevronRight)
+                  suffix: Icon(FIcons.chevronRight)
                 )
               ]
             ),
@@ -78,10 +78,10 @@ class SettingsPage extends ConsumerWidget {
               children: [
                 FTile(
                   onPress: () {},
-                  prefixIcon: Icon(FIcons.mail),
+                  prefix: Icon(FIcons.mail),
                   title: const Text('Benachrichtigungen anpassen'),
                   subtitle: const Text('Passe Banner, Töne und Abzeichen an.'),
-                  suffixIcon: Icon(FIcons.chevronRight)
+                  suffix: Icon(FIcons.chevronRight)
                 )
               ]
             )

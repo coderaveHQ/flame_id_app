@@ -121,6 +121,24 @@ else
   fi
 fi
 
+# Check if additional_redirect_urls Web (External device) with ?invite-verified is set to the desired http://API_ADDRESS:8080?invite-verified
+echo -e "${BLUE}Checking additional_redirect_urls Web (External device) with ?invite-verified in: $TOML_FILE_PATH${NC}"
+# Look for the comment and check if the second next line has the correct value
+if grep -A 2 "# Web (External device)" "$TOML_FILE_PATH" | grep -q "\"http://$API_ADDRESS:8080?invite-verified\""; then
+  echo -e "${GREEN}additional_redirect_urls Web (External device) with ?invite-verified is already set to 'http://$API_ADDRESS:8080?invite-verified'.${NC}"
+else
+  echo -e "${BLUE}Updating additional_redirect_urls Web (External device) with ?invite-verified to 'http://$API_ADDRESS:8080?invite-verified'...${NC}"
+  # Replace the line two lines after the comment # Web (External device)
+  sed -i '' "/# Web (External device)/{n;n;s|\"[^\"]*\"|\"http://$API_ADDRESS:8080?invite-verified\"|;}" "$TOML_FILE_PATH"
+  # Verify the change
+  if grep -A 2 "# Web (External device)" "$TOML_FILE_PATH" | grep -q "\"http://$API_ADDRESS:8080?invite-verified\""; then
+    echo -e "${GREEN}Successfully updated additional_redirect_urls Web (External device) with ?invite-verified to 'http://$API_ADDRESS:8080?invite-verified'.${NC}"
+  else
+    echo -e "${RED}Error: Failed to update additional_redirect_urls Web (External device) with ?invite-verified!${NC}"
+    exit 1
+  fi
+fi
+
 echo -e "${BLUE}Checking file: $ENV_LOCAL_FILE_PATH${NC}"
 # Check if SUPABASE_URL is set to the desired http://API_ADDRESS:54321 in .env.local
 if grep -q "SUPABASE_URL=http://$API_ADDRESS:54321" "$ENV_LOCAL_FILE_PATH"; then

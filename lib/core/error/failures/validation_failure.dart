@@ -19,6 +19,12 @@ class ValidationFailure extends Failure {
           description: 'Das Passwort muss mindestens 6 Zeichen lang sein.'
         );
 
+  const ValidationFailure.invalidName()
+      : super(
+          title: 'Name nicht gültig',
+          description: 'Der Name muss zwischen 2 und 64 Zeichen lang sein.'
+      );
+
   const ValidationFailure.invalidOtpToken()
       : super(
           title: 'Code nicht gültig',

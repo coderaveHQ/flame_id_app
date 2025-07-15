@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.1.0
 
 environment:
-  sdk: 3.8.0
+  sdk: 3.8.1
   flutter: 3.32.0
 
 dependencies:
@@ -25,16 +25,20 @@ dependencies:
   go_router: ^15.2.4
 
   # Forui
-  forui: ^0.12.0
-  forui_assets: ^0.12.0
-  forui_hooks: ^0.12.0
+  forui: ^0.14.0
+  forui_assets: ^0.14.0
+  forui_hooks: ^0.14.0
 
   # UI
   pinput: ^5.0.1
 
+  # Deep Links
+  app_links: ^6.4.0
+
   # Helpers
   dartz: ^0.10.1
   equatable: ^2.0.7
+  collection: ^1.19.1
 
 dev_dependencies:
   flutter_test:

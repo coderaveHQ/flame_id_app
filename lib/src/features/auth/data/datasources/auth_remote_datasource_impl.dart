@@ -1,5 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flame_id_app/core/utils/enums/fire_department_rank.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_sub_unit_user_role.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_user_role.dart';
 import 'package:flame_id_app/core/utils/redirect_urls.dart';
 import 'package:flame_id_app/core/utils/typedefs.dart';
 import 'package:flame_id_app/src/features/auth/data/datasources/auth_remote_datasource.dart';
@@ -133,12 +136,55 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
+  Future<void> sendInvitation({
+    required String email,
+    required String name,
+    required FireDepartmentUserRole role,
+    required FireDepartmentRank rank,
+    required List<({ String subUnitId, FireDepartmentSubUnitUserRole role })> subUnits
+  }) async {
+    await _client.functions.invoke(
+      'send-invitation',
+      body: <String, dynamic>{
+        'email' : email,
+        'redirect_to' : RedirectUrls.verifyInvite,
+        'initial_data' : <String, dynamic>{
+          'role' : role.dbValue,
+          'rank' : rank.dbValue,
+          'name' : name,
+          'sub_units' : <Map<String, dynamic>>[
+            ...subUnits.map((({ String subUnitId, FireDepartmentSubUnitUserRole role }) subUnit) {
+              return <String, dynamic>{
+                'fire_department_sub_unit_id' : subUnit.subUnitId,
+                'role' : subUnit.role.dbValue
+              };
+            })
+          ]
+        }
+      }
+    );
+  }
+
+  @override
+  Future<void> verifyInviteOtp({
+    required String email,
+    required String otp
+  }) async {
+    await _client.auth.verifyOTP(
+      type: OtpType.invite,
+      email: email,
+      token: otp,
+      redirectTo: RedirectUrls.resetPassword
+    );
+  }
+
+  @override
   Future<void> signOut() async {
     await _client.auth.signOut();
   }
 
   @override
-  Stream<SupabaseAuthState> onAuthStateChange() {
+  Stream<SupabaseAuthState> get onAuthStateChange {
     return _client.auth.onAuthStateChange;
   }
 

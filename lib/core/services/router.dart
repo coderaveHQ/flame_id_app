@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:flame_id_app/src/features/auth/presentation/pages/verify_invite_page.dart';
 import 'package:flame_id_app/src/features/auth/presentation/pages/verify_change_email_page.dart';
 import 'package:flame_id_app/src/features/auth/presentation/pages/verify_sign_in_page.dart';
 import 'package:flame_id_app/src/features/auth/presentation/pages/verify_reset_password_page.dart';
@@ -169,6 +170,26 @@ class VerifySignInRoute extends GoRouteData with _$VerifySignInRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return VerifySignInPage(email: $extra);
+  }
+}
+
+@TypedGoRoute<VerifyInviteRoute>(
+  path: VerifyInviteRoute.path
+)
+class VerifyInviteRoute extends GoRouteData with _$VerifyInviteRoute {
+
+  const VerifyInviteRoute(this.$extra);
+
+  final String? $extra;
+
+  static const String path = '/invite/verify';
+  static const String fullPath = path;
+
+  static final GlobalKey<NavigatorState> $navigatorKey = rootNavigatorKey;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    return NoTransitionPage(child: VerifyInvitePage(email: $extra));
   }
 }
 

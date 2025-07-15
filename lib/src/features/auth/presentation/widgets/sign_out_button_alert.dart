@@ -24,7 +24,7 @@ class SignOutButtonAlert extends StatelessWidget {
       actions: [
         FButton(
           onPress: () => context.pop(false),
-          style: FButtonStyle.outline, 
+          style: FButtonStyle.outline(), 
           child: const Text('Abbrechen')
         ),
         FButton(

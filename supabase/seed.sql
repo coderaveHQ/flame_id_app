@@ -1,7 +1,7 @@
 /* 
  * Section: Seed Data Script
- * Description: This script populates the fire_departments and auth.users tables with initial data,
- * including fire department entries and user accounts with associated metadata. It uses a DO block
+ * Description: This script populates the fire_departments, fire_department_sub_units, and auth.users tables with initial data,
+ * including fire department entries, sub-unit entries, and user accounts with associated metadata. It uses a DO block
  * with a FOREACH loop to insert multiple users and their identities into the authentication system.
  * The script assumes the schema (tables, types, and triggers) is already created.
  */
@@ -19,10 +19,35 @@ INSERT INTO fire_departments (id, name, type) VALUES
     ('123e4567-e89b-12d3-a456-426614174000', 'Pflichtfeuerwehr Solingen', 'pflichtfeuerwehr');
 
 /* 
+ * Insert initial sub-unit data into the fire_department_sub_units table.
+ * - 'id': Predefined UUIDs for each sub-unit.
+ * - 'fire_department_id': References the parent fire department.
+ * - 'name': Human-readable names of the sub-units.
+ * - 'type': ENUM values from fire_department_sub_unit_type to categorize the sub-units.
+ * This provides a starting set of sub-units for each fire department, with varying types for diversity.
+ */
+INSERT INTO fire_department_sub_units (id, fire_department_id, name, type) VALUES 
+    -- Sub-units for Freiwillige Feuerwehr Solingen
+    ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Löschgruppe 1', 'loescheinheit'),
+    ('b2c3d4e5-f678-90ab-cdef-1234567890ab', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Jugendfeuerwehr Solingen', 'jugendfeuerwehr'),
+    ('c3d4e5f6-7890-abcd-ef12-34567890abcd', '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Gefahrgutgruppe', 'gefahrgutgruppe'),
+    
+    -- Sub-units for Berufsfeuerwehr Solingen
+    ('d4e5f6a7-890b-cdef-1234-567890abcdef', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'Löschgruppe 2', 'loescheinheit'),
+    ('e5f6a7b8-90cd-ef12-3456-7890abcdef12', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'Kinderfeuerwehr Solingen', 'kinderfeuerwehr'),
+    ('f6a7b8c9-0def-1234-5678-90abcdef1234', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'Atemschutzgruppe', 'atemschutzgruppe'),
+    
+    -- Sub-units for Pflichtfeuerwehr Solingen
+    ('a7b8c9d0-ef12-3456-7890-abcdef123456', '123e4567-e89b-12d3-a456-426614174000', 'Löschgruppe 3', 'loescheinheit'),
+    ('b8c9d0e1-f234-5678-90ab-cdef12345678', '123e4567-e89b-12d3-a456-426614174000', 'Drohneneinheit Solingen', 'drohneneinheit'),
+    ('c9d0e1f2-3456-7890-abcd-ef123456789a', '123e4567-e89b-12d3-a456-426614174000', 'Höhenrettungsgruppe', 'hoehenrettungsgruppe');
+
+/* 
  * DO Block: Automates the creation of multiple user accounts and their identities.
  * Purpose: Uses a PL/pgSQL block with a FOREACH loop to insert users into auth.users and
  *          auth.identities tables, leveraging JSONB arrays for batch processing.
- * Note: Assumes the handle_new_user trigger will populate fire_department_users automatically.
+ * Note: Assumes the handle_new_user trigger will populate fire_department_users and optionally
+ *       fire_department_sub_unit_users automatically based on the metadata.
  */
 DO $$
 DECLARE
@@ -30,27 +55,55 @@ DECLARE
      * Declare variables for the loop.
      * - user_data (jsonb): Holds the current user's JSON data during each iteration.
      * - user_list (jsonb[]): An array of JSON objects, each representing a user with id, email,
-     *                        password, name, rank, role, and fire_department_id.
+     *                        password, name, rank, role, fire_department_id, and optionally sub_units
+     *                        (an array of objects with fire_department_sub_unit_id and role for variance).
      */
     user_data jsonb;
     user_list jsonb[] := ARRAY[
+        -- Florian Leeser (no sub_units)
         '{"id": "a3bb189e-7c1d-4b2e-9f6b-1234567890ab", "email": "fleeser@coderave.dev", "password": "password", "name": "Florian Leeser", "rank": "feuerwehrmann_anwaerter", "role": "admin", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}',
-        '{"id": "f5c2e9a1-8d4f-4c7a-b3e2-9876543210ba", "email": "sroepges@coderave.dev", "password": "password", "name": "Stefan Röpges", "rank": "feuerwehrmann", "role": "admin", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}',
-        '{"id": "7d9a1c3b-2e5f-4968-a1d4-abcdef123456", "email": "dgross@coderave.dev", "password": "password", "name": "Damian Groß", "rank": "oberfeuerwehrmann", "role": "user", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}',
-        '{"id": "e6b4f2c8-9a3d-4e1b-8c5a-456789abcdef", "email": "gsalanitro@coderave.dev", "password": "password", "name": "Giuseppe Salanitro", "rank": "hauptfeuerwehrmann", "role": "user", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}',
-        '{"id": "b1d8e7a4-3c6f-4a2e-9b7d-fedcba987654", "email": "sschneider@coderave.dev", "password": "password", "name": "Sebastian Schneider", "rank": "loeschmeister", "role": "user", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}',
-
-        '{"id": "c9f3a2e5-1b8d-4f6c-a4e3-3216549870ab", "email": "dleeser@coderave.dev", "password": "password", "name": "Dennis Leeser", "rank": "unterbrandmeister", "role": "admin", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}',
-        '{"id": "4a7b9e2d-6c3f-4d1a-8e5b-7890abcdef12", "email": "rleeser@coderave.dev", "password": "password", "name": "Robin Leeser", "rank": "brandmeister_anwaerter", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}',
-        '{"id": "d2e6f1c9-5a4b-4e8d-9c3a-4561237890ba", "email": "cschneider@coderave.dev", "password": "password", "name": "Chantal Schneider", "rank": "brandmeister", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}',
-        '{"id": "8b3c7a1e-2f9d-4b6c-a5e4-abcdef456789", "email": "dschloesser@coderave.dev", "password": "password", "name": "David Schlößer", "rank": "oberbrandmeister", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}',
-        '{"id": "f9a4e3b7-1c8f-4a2e-9d6b-9873216540ab", "email": "ldiekmann@coderave.dev", "password": "password", "name": "Leonie Diekmann", "rank": "hauptbrandmeister", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"}',
-
-        '{"id": "6c2b8e5a-3d7f-4e9c-a1d4-123789abcdef", "email": "mgoetz@coderave.dev", "password": "password", "name": "Marius Götz", "rank": "hauptbrandmeister_mit_zulage", "role": "admin", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000"}',
-        '{"id": "e1d9f4c3-5a2b-4f8e-9c7a-fedcba123456", "email": "jdietz@coderave.dev", "password": "password", "name": "Jan Dietz", "rank": "gruppenfuehrer", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000"}',
-        '{"id": "a7e3b9f2-4c1d-4a6e-8b5d-3214567890ab", "email": "nkusenberg@coderave.dev", "password": "password", "name": "Nick Kusenberg", "rank": "zugfuehrer", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000"}',
-        '{"id": "b4f1c8e6-9a3d-4e2b-9c7a-456789123abc", "email": "pbarz@coderave.dev", "password": "password", "name": "Patrick Barz", "rank": "kreisbrandmeister", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000"}',
-        '{"id": "d8a2e7b1-6c4f-4b9e-a3d5-abcdef789012", "email": "ddiekmann@coderave.dev", "password": "password", "name": "Dirk Diekmann", "rank": "kreisbrandrat", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000"}'
+        
+        -- Stefan Röpges (assigned to 2 sub-units with different roles)
+        '{"id": "f5c2e9a1-8d4f-4c7a-b3e2-9876543210ba", "email": "sroepges@coderave.dev", "password": "password", "name": "Stefan Röpges", "rank": "feuerwehrmann", "role": "admin", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", "sub_units": [{"fire_department_sub_unit_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "role": "admin"}, {"fire_department_sub_unit_id": "b2c3d4e5-f678-90ab-cdef-1234567890ab", "role": "user"}]}',
+        
+        -- Damian Groß (assigned to 1 sub-unit)
+        '{"id": "7d9a1c3b-2e5f-4968-a1d4-abcdef123456", "email": "dgross@coderave.dev", "password": "password", "name": "Damian Groß", "rank": "oberfeuerwehrmann", "role": "user", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", "sub_units": [{"fire_department_sub_unit_id": "c3d4e5f6-7890-abcd-ef12-34567890abcd", "role": "representative_admin"}]}',
+        
+        -- Giuseppe Salanitro (assigned to 3 sub-units with varying roles)
+        '{"id": "e6b4f2c8-9a3d-4e1b-8c5a-456789abcdef", "email": "gsalanitro@coderave.dev", "password": "password", "name": "Giuseppe Salanitro", "rank": "hauptfeuerwehrmann", "role": "user", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", "sub_units": [{"fire_department_sub_unit_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "role": "user"}, {"fire_department_sub_unit_id": "b2c3d4e5-f678-90ab-cdef-1234567890ab", "role": "admin"}, {"fire_department_sub_unit_id": "c3d4e5f6-7890-abcd-ef12-34567890abcd", "role": "representative_admin"}]}',
+        
+        -- Sebastian Schneider (assigned to 1 sub-unit)
+        '{"id": "b1d8e7a4-3c6f-4a2e-9b7d-fedcba987654", "email": "sschneider@coderave.dev", "password": "password", "name": "Sebastian Schneider", "rank": "loeschmeister", "role": "user", "fire_department_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", "sub_units": [{"fire_department_sub_unit_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "role": "user"}]}',
+        
+        -- Dennis Leeser (assigned to 2 sub-units with different roles)
+        '{"id": "c9f3a2e5-1b8d-4f6c-a4e3-3216549870ab", "email": "dleeser@coderave.dev", "password": "password", "name": "Dennis Leeser", "rank": "unterbrandmeister", "role": "admin", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "sub_units": [{"fire_department_sub_unit_id": "d4e5f6a7-890b-cdef-1234-567890abcdef", "role": "admin"}, {"fire_department_sub_unit_id": "e5f6a7b8-90cd-ef12-3456-7890abcdef12", "role": "representative_admin"}]}',
+        
+        -- Robin Leeser (assigned to 1 sub-unit)
+        '{"id": "4a7b9e2d-6c3f-4d1a-8e5b-7890abcdef12", "email": "rleeser@coderave.dev", "password": "password", "name": "Robin Leeser", "rank": "brandmeister_anwaerter", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "sub_units": [{"fire_department_sub_unit_id": "f6a7b8c9-0def-1234-5678-90abcdef1234", "role": "user"}]}',
+        
+        -- Chantal Schneider (assigned to 3 sub-units with varying roles)
+        '{"id": "d2e6f1c9-5a4b-4e8d-9c3a-4561237890ba", "email": "cschneider@coderave.dev", "password": "password", "name": "Chantal Schneider", "rank": "brandmeister", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "sub_units": [{"fire_department_sub_unit_id": "d4e5f6a7-890b-cdef-1234-567890abcdef", "role": "representative_admin"}, {"fire_department_sub_unit_id": "e5f6a7b8-90cd-ef12-3456-7890abcdef12", "role": "user"}, {"fire_department_sub_unit_id": "f6a7b8c9-0def-1234-5678-90abcdef1234", "role": "admin"}]}',
+        
+        -- David Schlößer (assigned to 1 sub-unit)
+        '{"id": "8b3c7a1e-2f9d-4b6c-a5e4-abcdef456789", "email": "dschloesser@coderave.dev", "password": "password", "name": "David Schlößer", "rank": "oberbrandmeister", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "sub_units": [{"fire_department_sub_unit_id": "d4e5f6a7-890b-cdef-1234-567890abcdef", "role": "admin"}]}',
+        
+        -- Leonie Diekmann (assigned to 2 sub-units with different roles)
+        '{"id": "f9a4e3b7-1c8f-4a2e-9d6b-9873216540ab", "email": "ldiekmann@coderave.dev", "password": "password", "name": "Leonie Diekmann", "rank": "hauptbrandmeister", "role": "user", "fire_department_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "sub_units": [{"fire_department_sub_unit_id": "e5f6a7b8-90cd-ef12-3456-7890abcdef12", "role": "user"}, {"fire_department_sub_unit_id": "f6a7b8c9-0def-1234-5678-90abcdef1234", "role": "representative_admin"}]}',
+        
+        -- Marius Götz (assigned to 1 sub-unit)
+        '{"id": "6c2b8e5a-3d7f-4e9c-a1d4-123789abcdef", "email": "mgoetz@coderave.dev", "password": "password", "name": "Marius Götz", "rank": "hauptbrandmeister_mit_zulage", "role": "admin", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000", "sub_units": [{"fire_department_sub_unit_id": "a7b8c9d0-ef12-3456-7890-abcdef123456", "role": "admin"}]}',
+        
+        -- Jan Dietz (assigned to 2 sub-units with different roles)
+        '{"id": "e1d9f4c3-5a2b-4f8e-9c7a-fedcba123456", "email": "jdietz@coderave.dev", "password": "password", "name": "Jan Dietz", "rank": "gruppenfuehrer", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000", "sub_units": [{"fire_department_sub_unit_id": "b8c9d0e1-f234-5678-90ab-cdef12345678", "role": "user"}, {"fire_department_sub_unit_id": "c9d0e1f2-3456-7890-abcd-ef123456789a", "role": "admin"}]}',
+        
+        -- Nick Kusenberg (assigned to 3 sub-units with varying roles)
+        '{"id": "a7e3b9f2-4c1d-4a6e-8b5d-3214567890ab", "email": "nkusenberg@coderave.dev", "password": "password", "name": "Nick Kusenberg", "rank": "zugfuehrer", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000", "sub_units": [{"fire_department_sub_unit_id": "a7b8c9d0-ef12-3456-7890-abcdef123456", "role": "representative_admin"}, {"fire_department_sub_unit_id": "b8c9d0e1-f234-5678-90ab-cdef12345678", "role": "admin"}, {"fire_department_sub_unit_id": "c9d0e1f2-3456-7890-abcd-ef123456789a", "role": "user"}]}',
+        
+        -- Patrick Barz (assigned to 1 sub-unit)
+        '{"id": "b4f1c8e6-9a3d-4e2b-9c7a-456789123abc", "email": "pbarz@coderave.dev", "password": "password", "name": "Patrick Barz", "rank": "kreisbrandmeister", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000", "sub_units": [{"fire_department_sub_unit_id": "b8c9d0e1-f234-5678-90ab-cdef12345678", "role": "user"}]}',
+        
+        -- Dirk Diekmann (assigned to 2 sub-units with different roles)
+        '{"id": "d8a2e7b1-6c4f-4b9e-a3d5-abcdef789012", "email": "ddiekmann@coderave.dev", "password": "password", "name": "Dirk Diekmann", "rank": "kreisbrandrat", "role": "user", "fire_department_id": "123e4567-e89b-12d3-a456-426614174000", "sub_units": [{"fire_department_sub_unit_id": "a7b8c9d0-ef12-3456-7890-abcdef123456", "role": "admin"}, {"fire_department_sub_unit_id": "c9d0e1f2-3456-7890-abcd-ef123456789a", "role": "representative_admin"}]}'
     ];
 BEGIN
     /* 
@@ -69,7 +122,8 @@ BEGIN
          * - 'encrypted_password': Password hashed using crypt with Blowfish (bf) salt for security.
          * - 'email_confirmed_at', 'recovery_sent_at', 'last_sign_in_at': Set to current timestamp for initial setup.
          * - 'raw_app_meta_data': JSONB with provider information.
-         * - 'raw_user_meta_data': JSONB with user-specific metadata (name, rank, role, fire_department_id).
+         * - 'raw_user_meta_data': JSONB with 'initial_data' object containing user-specific metadata (name, rank, role, fire_department_id,
+         *   and optionally sub_units as an array of objects).
          * - 'created_at', 'updated_at': Set to current timestamp.
          * - Other fields (e.g., tokens) are initialized as empty strings.
          */
@@ -102,12 +156,14 @@ BEGIN
             current_timestamp,
             current_timestamp,
             current_timestamp,
-            '{"provider":"email","providers":["email"]}',
-            json_build_object(
-                'name', user_data->>'name',
-                'rank', user_data->>'rank',
-                'role', user_data->>'role',
-                'fire_department_id', user_data->>'fire_department_id'
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            jsonb_build_object(
+                'initial_data', jsonb_build_object(
+                    'name', user_data->>'name',
+                    'rank', user_data->>'rank',
+                    'role', user_data->>'role',
+                    'fire_department_id', user_data->>'fire_department_id'
+                ) || COALESCE((user_data - 'id' - 'email' - 'password' - 'name' - 'rank' - 'role' - 'fire_department_id')::jsonb, '{}'::jsonb)
             ),
             current_timestamp,
             current_timestamp,

@@ -53,6 +53,7 @@ enum CustomAuthStatus {
     allowedPaths: <String>[
       SignInRoute.fullPath,
       VerifySignInRoute.fullPath,
+      VerifyInviteRoute.fullPath,
       ResetPasswordRoute.fullPath,
       VerifyResetPasswordRoute.fullPath
     ]
@@ -89,16 +90,25 @@ class CustomAuthUser extends Equatable {
 
   final String email;
   final String? newEmail;
+  final DateTime? invitedAt;
+  final DateTime? confirmedAt;
+  final DateTime? lastSignInAt;
 
   const CustomAuthUser({
     required this.email,
-    this.newEmail
+    this.newEmail,
+    this.invitedAt,
+    this.confirmedAt,
+    this.lastSignInAt
   });
 
   factory CustomAuthUser.fromSupabaseAuthSession(SupabaseAuthSession session) {
     return CustomAuthUser(
       email: session.user.email!,
-      newEmail: session.user.newEmail
+      newEmail: session.user.newEmail,
+      invitedAt: session.user.invitedAt.whenNotNull((String invitedAt) => DateTime.parse(invitedAt)),
+      confirmedAt: session.user.emailConfirmedAt.whenNotNull((String emailConfirmedAt) => DateTime.parse(emailConfirmedAt)),
+      lastSignInAt: session.user.lastSignInAt.whenNotNull((String lastSignInAt) => DateTime.parse(lastSignInAt))
     );
   }
 
@@ -148,30 +158,3 @@ class CustomAuthState extends Equatable {
     );
   }
 }
-
-/*
-
-At start:
-------------
-flutter: confirmationSentAt: null
-flutter: email: fleeser@coderave.dev
-flutter: newEmail: null
-flutter: emailChangeSentAt: null
-flutter: emailConfirmedAt: 2025-06-29T17:55:44.613679Z
-
-When E-Mail sent:
--------------------
-flutter: confirmationSentAt: null
-flutter: email: fleeser@coderave.dev
-flutter: newEmail: florian.leeser@icloud.com
-flutter: emailChangeSentAt: 2025-06-29T17:59:12.471916211Z
-flutter: emailConfirmedAt: 2025-06-29T17:55:44.613679Z
-
-When done:
--------------------
-flutter: confirmationSentAt: null
-flutter: email: florian.leeser@icloud.com
-flutter: newEmail: null
-flutter: emailChangeSentAt: 2025-06-29T17:59:12.471916Z
-flutter: emailConfirmedAt: 2025-06-29T17:55:44.613679Z
-*/

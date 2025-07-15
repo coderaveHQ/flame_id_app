@@ -42,7 +42,7 @@ class CustomPinPut extends StatelessWidget {
           onCompleted: onCompleted,
           length: length,
           controller: controller,
-          autofocus: true,
+          autofocus: false,
           defaultPinTheme: defaultPinTheme,
           focusedPinTheme: defaultPinTheme.copyWith(
             height: 68.0,

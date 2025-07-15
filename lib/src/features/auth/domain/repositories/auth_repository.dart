@@ -2,6 +2,9 @@ import 'package:dartz/dartz.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:flame_id_app/core/utils/enums/fire_department_rank.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_sub_unit_user_role.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_user_role.dart';
 import 'package:flame_id_app/src/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:flame_id_app/src/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:flame_id_app/core/error/failures/failure.dart';
@@ -65,9 +68,22 @@ abstract class AuthRepository {
     required String newPassword
   });
 
+  Future<Either<Failure, Unit>> sendInvitation({
+    required String email,
+    required String name,
+    required FireDepartmentUserRole role,
+    required FireDepartmentRank rank,
+    required List<({ String subUnitId, FireDepartmentSubUnitUserRole role })> subUnits
+  });
+
+  Future<Either<Failure, Unit>> verifyInviteOtp({
+    required String email,
+    required String otp
+  });
+
   Future<Either<Failure, Unit>> signOut();
 
-  Stream<Either<Failure, CustomAuthState>> onAuthStateChange();
+  Stream<Either<Failure, CustomAuthState>> get onAuthStateChange;
 
   CustomAuthState get currentAuthState;
 }

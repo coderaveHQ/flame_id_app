@@ -85,7 +85,7 @@ class Toaster {
       icon: Icon(type.icon),
       title: Text(title),
       description: Text(description),
-      duration: const Duration(seconds: 5)
+      duration: const Duration(seconds: 3)
     );
   }
 }

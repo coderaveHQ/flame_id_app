@@ -2,6 +2,9 @@ import 'package:dartz/dartz.dart';
 
 import 'package:flame_id_app/core/error/exception_handler.dart';
 import 'package:flame_id_app/core/error/failures/failure.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_rank.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_sub_unit_user_role.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_user_role.dart';
 import 'package:flame_id_app/core/utils/typedefs.dart';
 import 'package:flame_id_app/src/features/auth/presentation/providers/custom_auth_state_notifier_provider.dart';
 import 'package:flame_id_app/src/features/auth/data/datasources/auth_remote_datasource.dart';
@@ -140,6 +143,40 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> sendInvitation({
+    required String email,
+    required String name,
+    required FireDepartmentUserRole role,
+    required FireDepartmentRank rank,
+    required List<({ String subUnitId, FireDepartmentSubUnitUserRole role })> subUnits
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.sendInvitation(
+        email: email,
+        name: name,
+        role: role,
+        rank: rank,
+        subUnits: subUnits
+      );
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> verifyInviteOtp({
+    required String email,
+    required String otp
+  }) async {
+    return handleAsyncExceptions(() async {
+      await _remoteDataSource.verifyInviteOtp(
+        email: email,
+        otp: otp
+      );
+      return unit;
+    });
+  }
+
+  @override
   Future<Either<Failure, Unit>> signOut() async {
     return handleAsyncExceptions(() async {
       await _remoteDataSource.signOut();
@@ -148,8 +185,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Stream<Either<Failure, CustomAuthState>> onAuthStateChange() {
-    return handleStreamExceptions(() => _remoteDataSource.onAuthStateChange().map((SupabaseAuthState supabaseAuthState) {
+  Stream<Either<Failure, CustomAuthState>> get onAuthStateChange {
+    return handleStreamExceptions(() => _remoteDataSource.onAuthStateChange.map((SupabaseAuthState supabaseAuthState) {
       return CustomAuthState.fromSupabaseAuthState(supabaseAuthState);
     }));
   }

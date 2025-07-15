@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:dartz/dartz.dart';
-
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -55,7 +54,7 @@ class _SignOutButtonState extends ConsumerState<SignOutButton> {
   @override
   Widget build(BuildContext context) {
     return FTooltip(
-      tipBuilder: (BuildContext _, FTooltipStyle _, Widget? _) => const Text('Abmelden'),
+      tipBuilder: (BuildContext _, FTooltipController _) => const Text('Abmelden'),
       child: FButton.icon(
         onPress: _handleSignOut,
         child: _isSignOutLoading

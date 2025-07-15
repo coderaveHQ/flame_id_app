@@ -42,6 +42,14 @@ class Success extends Equatable {
     : title = 'Abmeldung erfolgreich',
       description = 'Die Abmeldung war erfolgreich.';
 
+  const Success.invitationSent()
+    : title = 'E-Mail gesendet',
+      description = 'Wir haben eine Einladungs-E-Mail versendet.';
+
+  const Success.inviteVerified()
+    : title = 'Einladung angenommen',
+      description = 'Du kannst dich jetzt anmelden.';
+
   void showToast(BuildContext context) {
     Toaster.showSuccess(
       context: context,

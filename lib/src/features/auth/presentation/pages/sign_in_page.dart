@@ -57,6 +57,13 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     setState(() => _useSignInWithOtp = true);
   }
 
+  Future<void> _handleVerifyInvite() async {
+    if (_isSignInWithEmailAndPasswordLoading || _isSignInWithOtpLoading) return;
+
+    final String email = _emailController.text.toLowerCase().trim();
+    await VerifyInviteRoute(email).push(context);
+  }
+
   Future<void> _handleSignInWithEmailAndPassword() async {
     if (_isSignInWithEmailAndPasswordLoading || _isSignInWithOtpLoading) return;
 
@@ -157,14 +164,20 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           _useSignInWithOtp 
             ? FButton(
               onPress: _handleUseSignInWithEmailAndPassword,
-              style: FButtonStyle.secondary,
+              style: FButtonStyle.secondary(),
               child: const Text('Passwort verwenden')
             )
             : FButton(
               onPress: _handleUseSignInWithOtp,
-              style: FButtonStyle.secondary,
+              style: FButtonStyle.secondary(),
               child: const Text('Anmeldungs-Link verwenden')
-            )
+            ),
+          const SizedBox(height: 10.0),
+          FButton(
+            onPress: _handleVerifyInvite,
+            style: FButtonStyle.outline(),
+            child: const Text('Einladungs-Code erhalten')
+          )
         ]
       )
     );

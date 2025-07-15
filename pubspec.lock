@@ -26,7 +26,7 @@ packages:
     source: hosted
     version: "0.13.1"
   app_links:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: app_links
       sha256: "85ed8fc1d25a76475914fff28cc994653bd900bc2c26e4b57a49e097febb54ba"
@@ -194,7 +194,7 @@ packages:
     source: hosted
     version: "4.10.1"
   collection:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: collection
       sha256: "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76"
@@ -353,26 +353,26 @@ packages:
     dependency: "direct main"
     description:
       name: forui
-      sha256: e77b5774aef52883d148dba1d7b6ce7a723c5e1901b13142aea1bb61b9e68d9e
+      sha256: "828c355aaf9bf78deef9ab7ce751768504bd24b8a7b2b26749d7beb70e38a918"
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.0"
+    version: "0.14.0"
   forui_assets:
     dependency: "direct main"
     description:
       name: forui_assets
-      sha256: "795b47478ddf7cafb72e943f97ae004a4aa01f1ae40f0b2d68768c35ee680da4"
+      sha256: "207df3d1baf3a4d5d898fbc3e0272b44758e48bfd13f3b654f24a0bfdbfa6698"
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.0"
+    version: "0.14.0"
   forui_hooks:
     dependency: "direct main"
     description:
       name: forui_hooks
-      sha256: "369eb5a1267a3e518f7037e5bed8561493a8990011778db59ef03edaf3412767"
+      sha256: "240db5de540677999811b6d936353a27982d49c40f8c8e0285ac47ecaaadc183"
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.0"
+    version: "0.14.0"
   freezed_annotation:
     dependency: transitive
     description:
@@ -1163,5 +1163,5 @@ packages:
     source: hosted
     version: "2.1.0"
 sdks:
-  dart: "3.8.0"
+  dart: "3.8.1"
   flutter: ">=3.32.0"

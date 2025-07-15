@@ -61,7 +61,7 @@ class MainSidebar extends StatelessWidget {
               ),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: FDivider(style: context.theme.dividerStyles.horizontalStyle.copyWith(padding: EdgeInsets.zero))
+                child: FDivider(style: context.theme.dividerStyles.horizontalStyle.copyWith(padding: EdgeInsets.zero).call)
               )
             ]
           )

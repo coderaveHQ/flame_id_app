@@ -308,19 +308,26 @@ ALTER TABLE public.fire_department_addresses
 /* 
  * Function: handle_new_user
  * Purpose: Automatically inserts a new user into the fire_department_users table when a user is created
- *          in the auth.users table, using metadata from the authentication event.
+ *          in the auth.users table, using metadata from the authentication event. Additionally, if an optional
+ *          'sub_units' array is provided in the metadata, it inserts corresponding entries into the 
+ *          fire_department_sub_unit_users table for each sub-unit.
  * Parameters: Trigger context (implicit via RETURNS TRIGGER).
  * Returns: TRIGGER - Returns the new row to complete the trigger operation.
  * Security: SECURITY DEFINER ensures the function runs with the privileges of the role that created it,
  *           typically supabase_auth_admin, to access auth.users.
- * Note: Relies on raw_user_meta_data containing 'fire_department_id', 'role', 'rank', and 'name'.
+ * Note: Relies on raw_user_meta_data containing an 'initial_data' object with 'fire_department_id', 'role', 'rank', and 'name'. 
+ *       Optionally, 'sub_units' can be an array of objects within 'initial_data', each with 'fire_department_sub_unit_id' (UUID) 
+ *       and 'role' (matching fire_department_sub_unit_user_role ENUM).
  */
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+    sub_unit jsonb; -- Temporary variable for each array element (as jsonb for better handling)
 BEGIN
+    -- Core insert into fire_department_users (always executed)
     INSERT INTO public.fire_department_users (
         fire_department_id,
         user_id,
@@ -329,12 +336,30 @@ BEGIN
         name
     )
     VALUES (
-        (NEW.raw_user_meta_data->>'fire_department_id')::UUID, -- Casts the fire_department_id from JSON to UUID
+        (NEW.raw_user_meta_data->'initial_data'->>'fire_department_id')::UUID, -- Casts the fire_department_id from JSON to UUID
         NEW.id, -- The user_id from the auth.users table
-        (NEW.raw_user_meta_data->>'role')::public.fire_department_user_role, -- Casts role to the defined ENUM
-        (NEW.raw_user_meta_data->>'rank')::public.fire_department_rank, -- Casts rank to the defined ENUM
-        (NEW.raw_user_meta_data->>'name')::TEXT -- Casts name to TEXT
+        (NEW.raw_user_meta_data->'initial_data'->>'role')::public.fire_department_user_role, -- Casts role to the defined ENUM
+        (NEW.raw_user_meta_data->'initial_data'->>'rank')::public.fire_department_rank, -- Casts rank to the defined ENUM
+        (NEW.raw_user_meta_data->'initial_data'->>'name')::TEXT -- Casts name to TEXT
     );
+
+    -- Optional insert for sub-units: Only if 'sub_units' exists and is an array within 'initial_data'
+    IF (NEW.raw_user_meta_data->'initial_data' ? 'sub_units') AND jsonb_typeof(NEW.raw_user_meta_data->'initial_data'->'sub_units') = 'array' THEN
+        FOR sub_unit IN SELECT * FROM jsonb_array_elements(NEW.raw_user_meta_data->'initial_data'->'sub_units')
+        LOOP
+            INSERT INTO public.fire_department_sub_unit_users (
+                fire_department_sub_unit_id,
+                user_id,
+                role
+            )
+            VALUES (
+                (sub_unit->>'fire_department_sub_unit_id')::UUID, -- Casts to UUID (adjusted key)
+                NEW.id, -- The user_id from the auth.users table
+                (sub_unit->>'role')::public.fire_department_sub_unit_user_role -- Casts to ENUM
+            );
+        END LOOP;
+    END IF;
+
     RETURN NEW; -- Returns the newly created row to complete the trigger
 END;
 $$;
@@ -402,7 +427,7 @@ $$;
  * Security: SECURITY DEFINER ensures the function can access related functions and tables securely.
  * Note: Combines results from get_fire_department_user_role and get_fire_department_sub_unit_user_role.
  */
-CREATE FUNCTION public.check_fire_department_or_sub_unit_admin(p_user_id uuid, p_fire_department_sub_unit_id uuid)
+CREATE OR REPLACE FUNCTION public.check_fire_department_or_sub_unit_admin(p_user_id uuid, p_fire_department_sub_unit_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -434,7 +459,7 @@ $$;
  * Security: SECURITY DEFINER ensures the function can access the fire_department_sub_units table securely.
  * Note: Uses LIMIT 1 to return the first matching ID, assuming a unique constraint exists.
  */
-CREATE FUNCTION public.get_fire_department_id_from_sub_unit(p_fire_department_sub_unit_id uuid)
+CREATE OR REPLACE FUNCTION public.get_fire_department_id_from_sub_unit(p_fire_department_sub_unit_id uuid)
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -446,6 +471,34 @@ BEGIN
         WHERE id = p_fire_department_sub_unit_id
         LIMIT 1 -- Ensures only one row is returned, relying on the primary key constraint
     );
+END;
+$$;
+
+/* 
+ * Function: get_sub_units_of_users_fire_department
+ * Purpose: Retrieves all sub-units (with ID, type, and name) associated with the fire department 
+ *          of which the calling authenticated user is a member. 
+ *          This function uses the authenticated user's ID (auth.uid()) to determine their 
+ *          fire department and returns matching sub-units.
+ * Parameters: None (uses auth.uid() implicitly).
+ * Returns: TABLE (id UUID, type public.fire_department_sub_unit_type, name TEXT) - A table of sub-unit IDs, types, and names.
+ * Security: SECURITY DEFINER ensures the function runs with the privileges of the creator,
+ *           allowing access to necessary tables while respecting RLS policies.
+ * Note: Assumes the calling user is authenticated and has an entry in fire_department_users.
+ *       If the user is not associated with any fire department, an empty result is returned.
+ *       Expose this function as an RPC in Supabase for client-side calls.
+ */
+CREATE OR REPLACE FUNCTION public.get_sub_units_of_users_fire_department()
+RETURNS TABLE (id UUID, type public.fire_department_sub_unit_type, name TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT su.id, su.type, su.name
+    FROM public.fire_department_sub_units su
+    JOIN public.fire_department_users fu ON su.fire_department_id = fu.fire_department_id
+    WHERE fu.user_id = auth.uid();
 END;
 $$;
 
@@ -475,7 +528,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
  * Level: Row Level Security (RLS) Policy Definitions
  * Description: Defines RLS policies for all tables in the public schema to enforce fine-grained
  * access control based on user roles, authentication status, and associated fire department
- * or sub-unit relationships.
+ * or sub-unit relationships. Policies use out-sourced functions to avoid repetition.
  */
 
 /* 
@@ -499,15 +552,19 @@ CREATE POLICY rlsp_fire_departments_insert ON public.fire_departments
  * Purpose: Allows SELECT operations on the 'fire_departments' table for authenticated users.
  * Action: FOR SELECT
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), id) IS NOT NULL - Grants access
- *        only if the authenticated user's role for the specific fire department is defined,
- *        ensuring users can only view departments they are associated with.
+ * Using: EXISTS subquery to check if the user is associated with the fire department via fire_department_users.
+ *        This out-sources the check to avoid repetition and ensures users can only view departments they are associated with.
  */
 CREATE POLICY rlsp_fire_departments_select ON public.fire_departments
     FOR SELECT
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), id) IS NOT NULL
+        EXISTS (
+            SELECT 1
+            FROM public.fire_department_users fu
+            WHERE fu.fire_department_id = fire_departments.id
+            AND fu.user_id = auth.uid()
+        )
     );
 
 /* 
@@ -515,14 +572,13 @@ CREATE POLICY rlsp_fire_departments_select ON public.fire_departments
  * Purpose: Restricts UPDATE operations on the 'fire_departments' table.
  * Action: FOR UPDATE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), id) = 'admin'::public.fire_department_user_role
- *        - Allows updates only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), id) = 'admin' - Allows updates only for admins of the department.
  */
 CREATE POLICY rlsp_fire_departments_update ON public.fire_departments
     FOR UPDATE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -530,14 +586,13 @@ CREATE POLICY rlsp_fire_departments_update ON public.fire_departments
  * Purpose: Restricts DELETE operations on the 'fire_departments' table.
  * Action: FOR DELETE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), id) = 'admin'::public.fire_department_user_role
- *        - Allows deletion only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), id) = 'admin' - Allows deletion only for admins of the department.
  */
 CREATE POLICY rlsp_fire_departments_delete ON public.fire_departments
     FOR DELETE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -560,14 +615,19 @@ CREATE POLICY rlsp_fire_department_users_insert ON public.fire_department_users
  * Purpose: Allows SELECT operations on the 'fire_department_users' table for authenticated users.
  * Action: FOR SELECT
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) IS NOT NULL
- *        - Grants access only if the authenticated user has a defined role for the associated fire department.
+ * Using: EXISTS subquery to check if the user is associated with the fire department or is viewing their own record.
+ *        This allows users to see their own data or data within their department.
  */
 CREATE POLICY rlsp_fire_department_users_select ON public.fire_department_users
     FOR SELECT
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) IS NOT NULL
+        EXISTS (
+            SELECT 1
+            FROM public.fire_department_users fu_inner
+            WHERE fu_inner.fire_department_id = fire_department_users.fire_department_id
+            AND fu_inner.user_id = auth.uid()
+        ) OR user_id = auth.uid()
     );
 
 /* 
@@ -575,14 +635,13 @@ CREATE POLICY rlsp_fire_department_users_select ON public.fire_department_users
  * Purpose: Restricts UPDATE operations on the 'fire_department_users' table.
  * Action: FOR UPDATE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows updates only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows updates only for admins of the department.
  */
 CREATE POLICY rlsp_fire_department_users_update ON public.fire_department_users
     FOR UPDATE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -590,15 +649,14 @@ CREATE POLICY rlsp_fire_department_users_update ON public.fire_department_users
  * Purpose: Restricts DELETE operations on the 'fire_department_users' table.
  * Action: FOR DELETE
  * Role: authenticated
- * Using: user_id = (SELECT auth.uid()) OR public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows deletion either by the user themselves (matching user_id) or by an 'admin' for the department.
+ * Using: user_id = auth.uid() OR admin in department - Allows deletion by self or admin.
  */
 CREATE POLICY rlsp_fire_department_users_delete ON public.fire_department_users
     FOR DELETE
     TO authenticated
     USING (
-        user_id = (SELECT auth.uid())
-        OR public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        user_id = auth.uid()
+        OR public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -606,14 +664,13 @@ CREATE POLICY rlsp_fire_department_users_delete ON public.fire_department_users
  * Purpose: Restricts INSERT operations on the 'fire_department_addresses' table.
  * Action: FOR INSERT
  * Role: authenticated
- * Check: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows inserts only for users with the 'admin' role for the associated fire department.
+ * Check: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows inserts only for admins of the department.
  */
 CREATE POLICY rlsp_fire_department_addresses_insert ON public.fire_department_addresses
     FOR INSERT
     TO authenticated
     WITH CHECK (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -621,17 +678,18 @@ CREATE POLICY rlsp_fire_department_addresses_insert ON public.fire_department_ad
  * Purpose: Allows SELECT operations on the 'fire_department_addresses' table for authenticated users.
  * Action: FOR SELECT
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) IS NOT NULL
- *        - Grants access only if the authenticated user has a defined role for the associated fire department.
+ * Using: EXISTS subquery to check association with the fire department.
  */
 CREATE POLICY rlsp_fire_department_addresses_select ON public.fire_department_addresses
     FOR SELECT
     TO authenticated
     USING (
-        public.get_fire_department_user_role(
-            (SELECT auth.uid()),
-            fire_department_id
-        ) IS NOT NULL
+        EXISTS (
+            SELECT 1
+            FROM public.fire_department_users fu
+            WHERE fu.fire_department_id = fire_department_addresses.fire_department_id
+            AND fu.user_id = auth.uid()
+        )
     );
 
 /* 
@@ -639,14 +697,13 @@ CREATE POLICY rlsp_fire_department_addresses_select ON public.fire_department_ad
  * Purpose: Restricts UPDATE operations on the 'fire_department_addresses' table.
  * Action: FOR UPDATE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows updates only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows updates only for admins.
  */
 CREATE POLICY rlsp_fire_department_addresses_update ON public.fire_department_addresses
     FOR UPDATE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -654,14 +711,13 @@ CREATE POLICY rlsp_fire_department_addresses_update ON public.fire_department_ad
  * Purpose: Restricts DELETE operations on the 'fire_department_addresses' table.
  * Action: FOR DELETE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows deletion only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows deletion only for admins.
  */
 CREATE POLICY rlsp_fire_department_addresses_delete ON public.fire_department_addresses
     FOR DELETE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -669,14 +725,13 @@ CREATE POLICY rlsp_fire_department_addresses_delete ON public.fire_department_ad
  * Purpose: Restricts INSERT operations on the 'fire_department_sub_units' table.
  * Action: FOR INSERT
  * Role: authenticated
- * Check: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows inserts only for users with the 'admin' role for the associated fire department.
+ * Check: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows inserts only for admins of the department.
  */
 CREATE POLICY rlsp_fire_department_sub_units_insert ON public.fire_department_sub_units
     FOR INSERT
     TO authenticated
     WITH CHECK (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -684,14 +739,18 @@ CREATE POLICY rlsp_fire_department_sub_units_insert ON public.fire_department_su
  * Purpose: Allows SELECT operations on the 'fire_department_sub_units' table for authenticated users.
  * Action: FOR SELECT
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) IS NOT NULL
- *        - Grants access only if the authenticated user has a defined role for the associated fire department.
+ * Using: EXISTS subquery to check association with the parent fire department.
  */
 CREATE POLICY rlsp_fire_department_sub_units_select ON public.fire_department_sub_units
     FOR SELECT
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) IS NOT NULL
+        EXISTS (
+            SELECT 1
+            FROM public.fire_department_users fu
+            WHERE fu.fire_department_id = fire_department_sub_units.fire_department_id
+            AND fu.user_id = auth.uid()
+        )
     );
 
 /* 
@@ -699,14 +758,13 @@ CREATE POLICY rlsp_fire_department_sub_units_select ON public.fire_department_su
  * Purpose: Restricts UPDATE operations on the 'fire_department_sub_units' table.
  * Action: FOR UPDATE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows updates only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows updates only for admins.
  */
 CREATE POLICY rlsp_fire_department_sub_units_update ON public.fire_department_sub_units
     FOR UPDATE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -714,14 +772,13 @@ CREATE POLICY rlsp_fire_department_sub_units_update ON public.fire_department_su
  * Purpose: Restricts DELETE operations on the 'fire_department_sub_units' table.
  * Action: FOR DELETE
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
- *        - Allows deletion only for users with the 'admin' role for the specific fire department.
+ * Using: public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin' - Allows deletion only for admins.
  */
 CREATE POLICY rlsp_fire_department_sub_units_delete ON public.fire_department_sub_units
     FOR DELETE
     TO authenticated
     USING (
-        public.get_fire_department_user_role((SELECT auth.uid()), fire_department_id) = 'admin'::public.fire_department_user_role
+        public.get_fire_department_user_role(auth.uid(), fire_department_id) = 'admin'::public.fire_department_user_role
     );
 
 /* 
@@ -729,17 +786,13 @@ CREATE POLICY rlsp_fire_department_sub_units_delete ON public.fire_department_su
  * Purpose: Restricts INSERT operations on the 'fire_department_sub_unit_users' table.
  * Action: FOR INSERT
  * Role: authenticated
- * Check: public.check_fire_department_or_sub_unit_admin((SELECT auth.uid()), fire_department_sub_unit_id)
- *        - Allows inserts only for users who are admins or representative_admins of the sub-unit or its parent department.
+ * Check: public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id) - Allows inserts for admins/representative_admins.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_users_insert ON public.fire_department_sub_unit_users
     FOR INSERT
     TO authenticated
     WITH CHECK (
-        public.check_fire_department_or_sub_unit_admin(
-            (SELECT auth.uid()),
-            fire_department_sub_unit_id
-        )
+        public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id)
     );
 
 /* 
@@ -747,17 +800,18 @@ CREATE POLICY rlsp_fire_department_sub_unit_users_insert ON public.fire_departme
  * Purpose: Allows SELECT operations on the 'fire_department_sub_unit_users' table for authenticated users.
  * Action: FOR SELECT
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), public.get_fire_department_id_from_sub_unit(fire_department_sub_unit_id)) IS NOT NULL
- *        - Grants access only if the authenticated user has a defined role for the associated fire department.
+ * Using: EXISTS subquery to check association with the parent fire department via get_fire_department_id_from_sub_unit.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_users_select ON public.fire_department_sub_unit_users
     FOR SELECT
     TO authenticated
     USING (
-        public.get_fire_department_user_role(
-            (SELECT auth.uid()),
-            public.get_fire_department_id_from_sub_unit(fire_department_sub_unit_id)
-        ) IS NOT NULL
+        EXISTS (
+            SELECT 1
+            FROM public.fire_department_users fu
+            WHERE fu.fire_department_id = public.get_fire_department_id_from_sub_unit(fire_department_sub_unit_users.fire_department_sub_unit_id)
+            AND fu.user_id = auth.uid()
+        )
     );
 
 /* 
@@ -765,17 +819,13 @@ CREATE POLICY rlsp_fire_department_sub_unit_users_select ON public.fire_departme
  * Purpose: Restricts UPDATE operations on the 'fire_department_sub_unit_users' table.
  * Action: FOR UPDATE
  * Role: authenticated
- * Using: public.check_fire_department_or_sub_unit_admin((SELECT auth.uid()), fire_department_sub_unit_id)
- *        - Allows updates only for users who are admins or representative_admins of the sub-unit or its parent department.
+ * Using: public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id) - Allows updates for admins/representative_admins.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_users_update ON public.fire_department_sub_unit_users
     FOR UPDATE
     TO authenticated
     USING (
-        public.check_fire_department_or_sub_unit_admin(
-            (SELECT auth.uid()),
-            fire_department_sub_unit_id
-        )
+        public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id)
     );
 
 /* 
@@ -783,18 +833,14 @@ CREATE POLICY rlsp_fire_department_sub_unit_users_update ON public.fire_departme
  * Purpose: Restricts DELETE operations on the 'fire_department_sub_unit_users' table.
  * Action: FOR DELETE
  * Role: authenticated
- * Using: user_id = (SELECT auth.uid()) OR public.check_fire_department_or_sub_unit_admin((SELECT auth.uid()), fire_department_sub_unit_id)
- *        - Allows deletion either by the user themselves (matching user_id) or by admins/representative_admins of the sub-unit.
+ * Using: user_id = auth.uid() OR admin/representative_admin - Allows deletion by self or admins.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_users_delete ON public.fire_department_sub_unit_users
     FOR DELETE
     TO authenticated
     USING (
-        user_id = (SELECT auth.uid())
-        OR public.check_fire_department_or_sub_unit_admin(
-            (SELECT auth.uid()),
-            fire_department_sub_unit_id
-        )
+        user_id = auth.uid()
+        OR public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id)
     );
 
 /* 
@@ -802,17 +848,13 @@ CREATE POLICY rlsp_fire_department_sub_unit_users_delete ON public.fire_departme
  * Purpose: Restricts INSERT operations on the 'fire_department_sub_unit_addresses' table.
  * Action: FOR INSERT
  * Role: authenticated
- * Check: public.check_fire_department_or_sub_unit_admin((SELECT auth.uid()), fire_department_sub_unit_id)
- *        - Allows inserts only for users who are admins or representative_admins of the sub-unit or its parent department.
+ * Check: public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id) - Allows inserts for admins/representative_admins.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_addresses_insert ON public.fire_department_sub_unit_addresses
     FOR INSERT
     TO authenticated
     WITH CHECK (
-        public.check_fire_department_or_sub_unit_admin(
-            (SELECT auth.uid()),
-            fire_department_sub_unit_id
-        )
+        public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id)
     );
 
 /* 
@@ -820,17 +862,18 @@ CREATE POLICY rlsp_fire_department_sub_unit_addresses_insert ON public.fire_depa
  * Purpose: Allows SELECT operations on the 'fire_department_sub_unit_addresses' table for authenticated users.
  * Action: FOR SELECT
  * Role: authenticated
- * Using: public.get_fire_department_user_role((SELECT auth.uid()), public.get_fire_department_id_from_sub_unit(fire_department_sub_unit_id)) IS NOT NULL
- *        - Grants access only if the authenticated user has a defined role for the associated fire department.
+ * Using: EXISTS subquery to check association with the parent fire department via get_fire_department_id_from_sub_unit.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_addresses_select ON public.fire_department_sub_unit_addresses
     FOR SELECT
     TO authenticated
     USING (
-        public.get_fire_department_user_role(
-            (SELECT auth.uid()),
-            public.get_fire_department_id_from_sub_unit(fire_department_sub_unit_id)
-        ) IS NOT NULL
+        EXISTS (
+            SELECT 1
+            FROM public.fire_department_users fu
+            WHERE fu.fire_department_id = public.get_fire_department_id_from_sub_unit(fire_department_sub_unit_addresses.fire_department_sub_unit_id)
+            AND fu.user_id = auth.uid()
+        )
     );
 
 /* 
@@ -838,17 +881,13 @@ CREATE POLICY rlsp_fire_department_sub_unit_addresses_select ON public.fire_depa
  * Purpose: Restricts UPDATE operations on the 'fire_department_sub_unit_addresses' table.
  * Action: FOR UPDATE
  * Role: authenticated
- * Using: public.check_fire_department_or_sub_unit_admin((SELECT auth.uid()), fire_department_sub_unit_id)
- *        - Allows updates only for users who are admins or representative_admins of the sub-unit or its parent department.
+ * Using: public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id) - Allows updates for admins/representative_admins.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_addresses_update ON public.fire_department_sub_unit_addresses
     FOR UPDATE
     TO authenticated
     USING (
-        public.check_fire_department_or_sub_unit_admin(
-            (SELECT auth.uid()),
-            fire_department_sub_unit_id
-        )
+        public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id)
     );
 
 /* 
@@ -856,23 +895,19 @@ CREATE POLICY rlsp_fire_department_sub_unit_addresses_update ON public.fire_depa
  * Purpose: Restricts DELETE operations on the 'fire_department_sub_unit_addresses' table.
  * Action: FOR DELETE
  * Role: authenticated
- * Using: public.check_fire_department_or_sub_unit_admin((SELECT auth.uid()), fire_department_sub_unit_id)
- *        - Allows deletion only for users who are admins or representative_admins of the sub-unit or its parent department.
+ * Using: public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id) - Allows deletion for admins/representative_admins.
  */
 CREATE POLICY rlsp_fire_department_sub_unit_addresses_delete ON public.fire_department_sub_unit_addresses
     FOR DELETE
     TO authenticated
     USING (
-        public.check_fire_department_or_sub_unit_admin(
-            (SELECT auth.uid()),
-            fire_department_sub_unit_id
-        )
+        public.check_fire_department_or_sub_unit_admin(auth.uid(), fire_department_sub_unit_id)
     );
 
 /* 
  * Level: Access Control Definitions
  * Description: Defines access control settings to enforce Row Level Security (RLS) as the primary
- * access control mechanism, with specific grants for service_role.
+ * access control mechanism, with specific grants for service_role and authenticated for function execution.
  */
 
 /* 
@@ -890,15 +925,15 @@ REVOKE ALL ON TABLE public.fire_departments FROM authenticated, anon, public;
 
 /* 
  * Block: Revoke Default Permissions on Functions
- * Purpose: Remove all default permissions from anon, authenticated, and public roles on all functions
- * to ensure that only authorized roles (e.g., supabase_auth_admin, service_role) can execute them.
+ * Purpose: Remove all default permissions from anon and public roles on all functions
+ * to ensure that only authorized roles (e.g., authenticated, supabase_auth_admin, service_role) can execute them.
  * This enhances security by limiting function access.
  */
-REVOKE ALL ON FUNCTION public.check_fire_department_or_sub_unit_admin(uuid, uuid) FROM authenticated, anon, public;
-REVOKE ALL ON FUNCTION public.get_fire_department_id_from_sub_unit(uuid) FROM authenticated, anon, public;
-REVOKE ALL ON FUNCTION public.get_fire_department_sub_unit_user_role(uuid, uuid) FROM authenticated, anon, public;
-REVOKE ALL ON FUNCTION public.get_fire_department_user_role(uuid, uuid) FROM authenticated, anon, public;
-REVOKE ALL ON FUNCTION public.handle_new_user() FROM authenticated, anon, public;
+REVOKE ALL ON FUNCTION public.check_fire_department_or_sub_unit_admin(uuid, uuid) FROM anon, public;
+REVOKE ALL ON FUNCTION public.get_fire_department_id_from_sub_unit(uuid) FROM anon, public;
+REVOKE ALL ON FUNCTION public.get_fire_department_sub_unit_user_role(uuid, uuid) FROM anon, public;
+REVOKE ALL ON FUNCTION public.get_fire_department_user_role(uuid, uuid) FROM anon, public;
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM anon, public;
 
 /* 
  * Block: Grant Permissions for Service Role
@@ -911,7 +946,6 @@ GRANT ALL ON TABLE public.fire_department_addresses TO service_role; -- Full con
 GRANT ALL ON TABLE public.fire_department_sub_unit_addresses TO service_role; -- Full control for backend management
 GRANT ALL ON TABLE public.fire_department_sub_unit_users TO service_role; -- Full control for backend management
 GRANT ALL ON TABLE public.fire_department_sub_units TO service_role; -- Full control for backend management
-GRANT ALL ON TABLE public.fire_departments TO service_role; -- Full control for backend management (duplicate grant, ensure intent)
 
 GRANT EXECUTE ON FUNCTION public.check_fire_department_or_sub_unit_admin(uuid, uuid) TO service_role; -- Allows execution for RLS checks
 GRANT EXECUTE ON FUNCTION public.get_fire_department_id_from_sub_unit(uuid) TO service_role; -- Allows execution for sub-unit to department mapping
@@ -920,14 +954,23 @@ GRANT EXECUTE ON FUNCTION public.get_fire_department_user_role(uuid, uuid) TO se
 GRANT EXECUTE ON FUNCTION public.handle_new_user() TO service_role; -- Allows execution for new user trigger
 
 /* 
+ * Block: Grant Execute Permissions for Authenticated on Functions
+ * Purpose: Grant EXECUTE permissions to authenticated users on functions used in RLS policies
+ * to allow policy evaluation without permission denied errors, while maintaining security through RLS.
+ */
+GRANT EXECUTE ON FUNCTION public.check_fire_department_or_sub_unit_admin(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fire_department_id_from_sub_unit(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fire_department_sub_unit_user_role(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_fire_department_user_role(uuid, uuid) TO authenticated;
+
+/* 
  * Block: Final Revoke of All Permissions
  * Purpose: Perform a comprehensive revoke of all permissions on all tables and functions in the
  * public schema from anon, authenticated, and public roles to enforce RLS as the sole access control
- * mechanism. This is a safety net to ensure no residual permissions remain.
+ * mechanism. This is a safety net to ensure no residual permissions remain. Note: EXECUTE grants for functions are preserved.
  */
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon; -- Revokes all table permissions from anon
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated; -- Revokes all table permissions from authenticated
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM public; -- Revokes all table permissions from public
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon; -- Revokes all function permissions from anon
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM authenticated; -- Revokes all function permissions from authenticated
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM public; -- Revokes all function permissions from public

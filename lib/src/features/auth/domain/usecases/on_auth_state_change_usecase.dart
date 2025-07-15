@@ -21,6 +21,6 @@ class OnAuthStateChangeUsecase {
   const OnAuthStateChangeUsecase(this._authRepository);
 
   Stream<Either<Failure, CustomAuthState>> call() {
-    return _authRepository.onAuthStateChange();
+    return _authRepository.onAuthStateChange;
   }
 }

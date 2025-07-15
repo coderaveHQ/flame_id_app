@@ -2,6 +2,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flame_id_app/core/utils/enums/fire_department_rank.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_sub_unit_user_role.dart';
+import 'package:flame_id_app/core/utils/enums/fire_department_user_role.dart';
 import 'package:flame_id_app/src/features/auth/data/datasources/auth_remote_datasource_impl.dart';
 import 'package:flame_id_app/core/utils/typedefs.dart';
 
@@ -62,9 +65,22 @@ abstract class AuthRemoteDatasource {
     required String newPassword
   });
 
+  Future<void> sendInvitation({
+    required String email,
+    required String name,
+    required FireDepartmentUserRole role,
+    required FireDepartmentRank rank,
+    required List<({ String subUnitId, FireDepartmentSubUnitUserRole role })> subUnits
+  });
+
+  Future<void> verifyInviteOtp({
+    required String email,
+    required String otp
+  });
+
   Future<void> signOut();
 
-  Stream<SupabaseAuthState> onAuthStateChange();
+  Stream<SupabaseAuthState> get onAuthStateChange;
 
   SupabaseAuthSession? get currentAuthSession;
 }

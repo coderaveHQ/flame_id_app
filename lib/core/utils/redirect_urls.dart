@@ -10,6 +10,7 @@ class RedirectUrls {
   static String get magicLink => _buildRedirectUrlForPlatform(SplashRoute.fullPath);
   static String get resetPassword => _buildRedirectUrlForPlatform(SplashRoute.fullPath);
   static String get changeEmail => _buildRedirectUrlForPlatform(SplashRoute.fullPath);
+  static String get verifyInvite => _buildRedirectUrlForPlatform('${ SplashRoute.fullPath }?invite-verified');
 
   static String _buildRedirectUrlForPlatform(String host) {
     host = host.substring(1);
