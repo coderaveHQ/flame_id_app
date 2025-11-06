@@ -11,9 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
-      - name: Start local Supabase
-        run: supabase start -x studio
-      - name: Reset DB (migrate + seed)
-        run: supabase db reset
-      - name: Run pgTAP tests
-        run: supabase test db
+        with:
+          version: latest
+      - run: supabase db start
+      - run: supabase test db
