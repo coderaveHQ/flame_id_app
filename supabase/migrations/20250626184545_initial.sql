@@ -1,3 +1,13 @@
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
 /* 
  * Consolidated SQL Script for Fire Department Database Schema
  * Description: This script combines all definitions for types, tables, functions, triggers, policies,
@@ -130,10 +140,17 @@ CREATE TYPE public.fire_department_sub_unit_user_role AS ENUM (
  */
 CREATE TABLE public.fire_departments (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     type public.fire_department_type NOT NULL,
     name TEXT NOT NULL,
     CONSTRAINT pk_fire_departments PRIMARY KEY (id)
 );
+
+create trigger trg_pubic_fire_departments_touch_updated_at
+before update on public.fire_departments
+for each row
+execute function public.touch_updated_at();
 
 /* 
  * Enable Row Level Security (RLS) on the 'fire_departments' table.
