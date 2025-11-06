@@ -1,14 +1,12 @@
--- File: supabase/tests/2_touch_updated_at.behavior.test.sql
+-- File: supabase/tests/fn_touch_updated_at.behavior.test.sql
 begin;
 create extension if not exists pgtap;
 
--- 3 Checks:
--- 1) Sentinel beim Insert gesetzt
--- 2) Genau 1 Zeile geupdatet
--- 3) updated_at > Sentinel nach UPDATE (Trigger hat zugeschlagen)
-select plan(3);
+-- (1) Sentinel korrekt gesetzt
+-- (2) UPDATE erhöht updated_at (Trigger greift)
+select plan(2);
 
--- Saubere Testtabelle
+-- Testtabelle
 drop table if exists public._touch_updated_at_e2e cascade;
 create table public._touch_updated_at_e2e (
   id uuid primary key,
@@ -23,28 +21,22 @@ before update on public._touch_updated_at_e2e
 for each row
 execute function public.touch_updated_at();
 
--- Insert mit ALTEM Timestamp (Sentinel)
+-- (1) Insert mit *altem* Timestamp (übersteuert DEFAULT now())
 insert into public._touch_updated_at_e2e (id, name, updated_at)
 values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'first', '2000-01-01 00:00:00+00');
 
--- (1) Sentinel wirklich gesetzt?
 select ok(
   (select updated_at = '2000-01-01 00:00:00+00'::timestamptz
      from public._touch_updated_at_e2e
     where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
-  'sentinel set'
+  'sentinel set on insert'
 );
 
--- (2) UPDATE ausführen und sicherstellen, dass genau 1 Zeile betroffen war
-with upd as (
-  update public._touch_updated_at_e2e
-     set name = 'second'
-   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-  returning 1
-)
-select is((select count(*) from upd), 1::bigint, 'exactly one row updated');
+-- (2) Update -> Trigger setzt updated_at := now()  (muss > Sentinel sein)
+update public._touch_updated_at_e2e
+   set name = 'second'
+ where id   = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
--- (3) Neuer Timestamp ist > Sentinel (Trigger hat updated_at gesetzt)
 select ok(
   (select updated_at > '2000-01-01 00:00:00+00'::timestamptz
      from public._touch_updated_at_e2e

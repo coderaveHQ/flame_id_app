@@ -119,7 +119,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // Validate role and rank against ENUMs (basic string check; full validation can be done in DB)
-  const validRoles: string[] = ['admin', 'user'];
+  const validRoles: string[] = ['admin', 'representative_admin', 'user'];
   const validRanks: string[] = [
     'feuerwehrmann_anwaerter', 'feuerwehrmann', 'oberfeuerwehrmann', 'hauptfeuerwehrmann',
     'loeschmeister', 'oberloeschmeister', 'hauptloeschmeister', 'unterbrandmeister',

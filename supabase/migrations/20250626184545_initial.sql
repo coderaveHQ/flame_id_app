@@ -1,3 +1,5 @@
+/* FUNCTIONS */ 
+
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
@@ -8,26 +10,8 @@ begin
 end;
 $$;
 
-/* 
- * Consolidated SQL Script for Fire Department Database Schema
- * Description: This script combines all definitions for types, tables, functions, triggers, policies,
- * and access controls for the fire department application. It is organized into sections for clarity
- * and follows PostgreSQL/Supabase conventions with detailed English comments.
- * Date: June 26, 2025
- */
+/* ENUMS */ 
 
-/* 
- * Level: Enum Type Definitions
- * Description: Defines ENUM types to enforce data consistency for fire department categories,
- * user roles, ranks, and sub-unit roles.
- */
-
-/* 
- * Create an ENUM type to categorize different types of fire departments.
- * The ENUM ensures that only predefined values can be used for the 'type' column in the fire_departments table.
- * Values include 'freiwillige_feuerwehr' (voluntary fire department), 'berufsfeuerwehr' (professional fire department),
- * 'pflichtfeuerwehr' (mandatory fire department), and 'other' for unspecified types.
- */
 CREATE TYPE public.fire_department_type AS ENUM (
     'freiwillige_feuerwehr',
     'berufsfeuerwehr',
@@ -35,23 +19,13 @@ CREATE TYPE public.fire_department_type AS ENUM (
     'other'
 );
 
-/* 
- * Create an ENUM type to define possible roles a user can have within a fire department.
- * The ENUM ensures that only 'admin' or 'user' values can be assigned to the 'role' column.
- * - 'admin': User with administrative privileges.
- * - 'user': Standard user with limited access.
- */
 CREATE TYPE public.fire_department_user_role AS ENUM (
     'admin',
+    'representative_admin',
     'user'
 );
 
-/* 
- * Create an ENUM type to define the hierarchical ranks within a fire department.
- * The ENUM provides a comprehensive list of ranks, from trainee to director levels, including
- * 'other' and 'none' for flexibility. This ensures data consistency in the 'rank' column.
- */
-CREATE TYPE public.fire_department_rank AS ENUM (
+CREATE TYPE public.fire_department_user_rank AS ENUM (
     'feuerwehrmann_anwaerter',
     'feuerwehrmann',
     'oberfeuerwehrmann',
@@ -86,12 +60,6 @@ CREATE TYPE public.fire_department_rank AS ENUM (
     'none'
 );
 
-/* 
- * Create an ENUM type to categorize the various types of sub-units within a fire department.
- * The ENUM ensures that only predefined values can be used for the 'type' column in the
- * fire_department_sub_units table. This includes operational units (e.g., 'loescheinheit'),
- * youth groups (e.g., 'jugendfeuerwehr'), and support units (e.g., 'versorgungszug').
- */
 CREATE TYPE public.fire_department_sub_unit_type AS ENUM (
     'loescheinheit',
     'jugendfeuerwehr',
@@ -112,145 +80,129 @@ CREATE TYPE public.fire_department_sub_unit_type AS ENUM (
     'feuerwehrverein'
 );
 
-/* 
- * Create an ENUM type to define possible roles a user can have within a fire department sub-unit.
- * The ENUM ensures that only 'admin', 'representative_admin', or 'user' values can be assigned to the 'role' column.
- * - 'admin': User with full administrative privileges within the sub-unit.
- * - 'representative_admin': User with partial administrative privileges, representing the sub-unit.
- * - 'user': Standard user with limited access.
- */
 CREATE TYPE public.fire_department_sub_unit_user_role AS ENUM (
     'admin',
     'representative_admin',
     'user'
 );
 
-/* 
- * Level: Table Definitions
- * Description: Defines the tables for fire departments, users, sub-units, and their addresses,
- * with primary and foreign key constraints, and enables Row Level Security (RLS).
- */
+/* TABLES */ 
 
-/* 
- * Create the 'fire_departments' table to store details of fire departments.
- * - 'id': A UUID primary key, automatically generated using gen_random_uuid() for uniqueness.
- * - 'type': A NOT NULL column referencing the fire_department_type ENUM to categorize the department.
- * - 'name': A NOT NULL TEXT column to store the name of the fire department.
- * - PRIMARY KEY constraint ensures 'id' is unique and serves as the table's primary key.
- */
 CREATE TABLE public.fire_departments (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     type public.fire_department_type NOT NULL,
     name TEXT NOT NULL,
-    CONSTRAINT pk_fire_departments PRIMARY KEY (id)
+    CONSTRAINT pk_fire_departments PRIMARY KEY (id),
+    constraint chk_fire_departments_name_length 
+        check (char_length(name) between 6 and 128)
 );
 
-create trigger trg_pubic_fire_departments_touch_updated_at
-before update on public.fire_departments
-for each row
-execute function public.touch_updated_at();
-
-/* 
- * Enable Row Level Security (RLS) on the 'fire_departments' table.
- * RLS allows fine-grained access control based on policies, ensuring that only authorized users
- * (based on their role and auth.uid()) can view or modify data.
- * Policies must be defined separately to specify the access rules.
- */
-ALTER TABLE public.fire_departments
-    ENABLE ROW LEVEL SECURITY;
-
-/* 
- * Create the 'fire_department_users' table to associate users with their fire departments,
- * including their role, rank, and name.
- * - 'fire_department_id': A UUID NOT NULL column referencing the fire_departments table, part of the composite primary key.
- * - 'user_id': A UUID NOT NULL column referencing the auth.users table, part of the composite primary key.
- * - 'role': A NOT NULL column using the fire_department_user_role ENUM to define the user's role.
- * - 'rank': A NOT NULL column using the fire_department_rank ENUM to define the user's rank.
- * - 'name': A NOT NULL TEXT column to store the user's name.
- * - 'pk_fire_department_users': A composite PRIMARY KEY constraint on (fire_department_id, user_id) to ensure uniqueness.
- * - 'fk_fire_department_users_fire_department': A FOREIGN KEY constraint linking to fire_departments(id).
- * - 'fk_fire_department_users_user': A FOREIGN KEY constraint linking to auth.users(id).
- */
 CREATE TABLE public.fire_department_users (
     fire_department_id UUID NOT NULL,
     user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     role public.fire_department_user_role NOT NULL,
-    rank public.fire_department_rank NOT NULL,
+    rank public.fire_department_user_rank NOT NULL,
     name TEXT NOT NULL,
     CONSTRAINT pk_fire_department_users PRIMARY KEY (fire_department_id, user_id),
     CONSTRAINT fk_fire_department_users_fire_department FOREIGN KEY (fire_department_id)
-        REFERENCES public.fire_departments (id),
+        REFERENCES public.fire_departments (id)
+        on update cascade
+        on delete cascade,
     CONSTRAINT fk_fire_department_users_user FOREIGN KEY (user_id)
         REFERENCES auth.users (id)
+        on update cascade
+        on delete cascade,
+    constraint chk_fire_department_users_name_length
+        check (char_length(name) between 2 and 128)
 );
 
-/* 
- * Enable Row Level Security (RLS) on the 'fire_department_users' table.
- * RLS allows fine-grained access control based on policies, ensuring that only authorized users
- * (based on their role and auth.uid()) can view or modify their own or administrable data.
- * Policies must be defined separately to specify the access rules.
- */
-ALTER TABLE public.fire_department_users
-    ENABLE ROW LEVEL SECURITY;
-
-/* 
- * Create the 'fire_department_sub_units' table to store information about sub-units within fire departments.
- * - 'id': A UUID primary key, automatically generated using gen_random_uuid() for uniqueness.
- * - 'fire_department_id': A UUID NOT NULL column referencing the fire_departments table, linking sub-units to their parent department.
- * - 'type': A NOT NULL column using the fire_department_sub_unit_type ENUM to categorize the sub-unit.
- * - 'name': A NOT NULL TEXT column to store the name of the sub-unit.
- * - 'pk_fire_department_sub_units': A PRIMARY KEY constraint on 'id' to ensure uniqueness.
- * - 'fk_fire_department_sub_units_fire_department': A FOREIGN KEY constraint linking to fire_departments(id).
- */
 CREATE TABLE public.fire_department_sub_units (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     fire_department_id UUID NOT NULL,
     type public.fire_department_sub_unit_type NOT NULL,
     name TEXT NOT NULL,
     CONSTRAINT pk_fire_department_sub_units PRIMARY KEY (id),
     CONSTRAINT fk_fire_department_sub_units_fire_department FOREIGN KEY (fire_department_id)
         REFERENCES public.fire_departments (id)
+        on update cascade
+        on delete cascade,
+    constraint chk_fire_department_sub_units_name_length
+        check (char_length(name) between 2 and 128)
 );
 
-/* 
- * Enable Row Level Security (RLS) on the 'fire_department_sub_units' table.
- * RLS allows fine-grained access control based on policies, ensuring that only authorized users
- * (based on their role and association with the fire department) can view or modify sub-unit data.
- * Policies must be defined separately to specify the access rules.
- */
-ALTER TABLE public.fire_department_sub_units
-    ENABLE ROW LEVEL SECURITY;
-
-/* 
- * Create the 'fire_department_sub_unit_users' table to associate users with their roles in specific sub-units.
- * - 'fire_department_sub_unit_id': A UUID NOT NULL column referencing the fire_department_sub_units table, part of the composite primary key.
- * - 'user_id': A UUID NOT NULL column referencing the auth.users table, part of the composite primary key.
- * - 'role': A NOT NULL column using the fire_department_sub_unit_user_role ENUM to define the user's role within the sub-unit.
- * - 'pk_fire_department_sub_unit_users': A composite PRIMARY KEY constraint on (fire_department_sub_unit_id, user_id) to ensure uniqueness per sub-unit and user.
- * - 'fk_fire_department_sub_unit_users_fire_department_sub_unit': A FOREIGN KEY constraint linking to fire_department_sub_units(id).
- * - 'fk_fire_department_sub_unit_users_user': A FOREIGN KEY constraint linking to auth.users(id).
- */
 CREATE TABLE public.fire_department_sub_unit_users (
     fire_department_sub_unit_id UUID NOT NULL,
     user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     role public.fire_department_sub_unit_user_role NOT NULL,
     CONSTRAINT pk_fire_department_sub_unit_users PRIMARY KEY (fire_department_sub_unit_id, user_id),
     CONSTRAINT fk_fire_department_sub_unit_users_fire_department_sub_unit FOREIGN KEY (fire_department_sub_unit_id)
-        REFERENCES public.fire_department_sub_units (id),
+        REFERENCES public.fire_department_sub_units (id)
+        on update cascade
+        on delete cascade,
     CONSTRAINT fk_fire_department_sub_unit_users_user FOREIGN KEY (user_id)
         REFERENCES auth.users (id)
+        on update cascade
+        on delete cascade
 );
 
-/* 
- * Enable Row Level Security (RLS) on the 'fire_department_sub_unit_users' table.
- * RLS allows fine-grained access control based on policies, ensuring that only authorized users
- * (based on their role, sub-unit association, and auth.uid()) can view or modify user-sub-unit relationships.
- * Policies must be defined separately to specify the access rules.
- */
+/* RLS */
+
+ALTER TABLE public.fire_departments
+    ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.fire_department_users
+    ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.fire_department_sub_units
+    ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.fire_department_sub_unit_users
     ENABLE ROW LEVEL SECURITY;
+
+/* TRIGGER */
+
+create trigger trg_pubic_fire_departments_touch_updated_at
+before update on public.fire_departments
+for each row
+execute function public.touch_updated_at();
+
+create trigger trg_pubic_fire_department_users_touch_updated_at
+before update on public.fire_department_users
+for each row
+execute function public.touch_updated_at();
+
+create trigger trg_pubic_fire_department_sub_units_touch_updated_at
+before update on public.fire_department_sub_units
+for each row
+execute function public.touch_updated_at();
+
+create trigger trg_pubic_fire_department_sub_unit_users_touch_updated_at
+before update on public.fire_department_sub_unit_users
+for each row
+execute function public.touch_updated_at();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* 
  * Create the 'fire_department_sub_unit_addresses' table to store address information for fire department sub-units.
@@ -356,7 +308,7 @@ BEGIN
         (NEW.raw_user_meta_data->'initial_data'->>'fire_department_id')::UUID, -- Casts the fire_department_id from JSON to UUID
         NEW.id, -- The user_id from the auth.users table
         (NEW.raw_user_meta_data->'initial_data'->>'role')::public.fire_department_user_role, -- Casts role to the defined ENUM
-        (NEW.raw_user_meta_data->'initial_data'->>'rank')::public.fire_department_rank, -- Casts rank to the defined ENUM
+        (NEW.raw_user_meta_data->'initial_data'->>'rank')::public.fire_department_user_rank, -- Casts rank to the defined ENUM
         (NEW.raw_user_meta_data->'initial_data'->>'name')::TEXT -- Casts name to TEXT
     );
 

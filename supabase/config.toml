@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "flame_id_app"
+project_id = "flameidapp"
 
 [api]
 enabled = true
@@ -69,7 +69,7 @@ enabled = true
 # Port to use for Supabase Studio.
 port = 54323
 # External URL of the API server that frontend connects to.
-api_url = "http://MY_API_IP_ADDRESS"
+api_url = "http://localhost"
 # OpenAI API Key to use for Supabase AI in the Supabase Studio.
 openai_api_key = "env(OPENAI_API_KEY)"
 
@@ -105,12 +105,12 @@ file_size_limit = "50MiB"
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://MY_API_IP_ADDRESS:8080"
+site_url = "http://localhost:8080"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
     # Web (External device)
-    "http://MY_API_IP_ADDRESS:8080",
-    "http://MY_API_IP_ADDRESS:8080?invite-verified",
+    "http://localhost:8080",
+    "http://localhost:8080?invite-verified",
 
     # Web (Local device)
     "http://localhost:8080",
