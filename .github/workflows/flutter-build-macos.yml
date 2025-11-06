@@ -1,0 +1,39 @@
+name: Flutter Build macOS
+
+on:
+  push:
+    branches: [ production ]
+  pull_request:
+    paths:
+      - '**/*.dart'
+      - 'macos/**'
+      - 'pubspec.yaml'
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS (Release)
+        run: flutter build macos --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: build/macos/Build/Products/Release/
